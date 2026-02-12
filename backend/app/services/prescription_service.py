@@ -17,6 +17,9 @@ async def create_prescription(
     status: str = "Digitized",
     image_url: str = None,
     patient_id: str = None,
+    extracted_patient_name: str = None,
+    extracted_age: int = None,
+    extracted_gender: str = None,
 ) -> dict:
     """Insert a new prescription record."""
     payload = {
@@ -24,14 +27,27 @@ async def create_prescription(
         "date": date.today().isoformat(),
         "medications": medications,
         "status": status,
+        "extracted_patient_name": extracted_patient_name,
+        "extracted_age": extracted_age,
+        "extracted_gender": extracted_gender,
     }
     if image_url:
         payload["image_url"] = image_url
     if patient_id:
         payload["patient_id"] = patient_id
 
-    result = supabase.table("prescriptions").insert(payload).execute()
-    return result.data[0] if result.data else {}
+    try:
+        result = supabase.table("prescriptions").insert(payload).execute()
+        return result.data[0] if result.data else {}
+    except Exception as e:
+        logger.error(f"Failed to create prescription: {e}")
+        # Fallback for missing columns (happen during migrations)
+        if "extracted_patient_name" in str(e) or "extracted_age" in str(e):
+             # Try inserting without extraction fields
+             safe_payload = {k:v for k,v in payload.items() if not k.startswith("extracted_")}
+             result = supabase.table("prescriptions").insert(safe_payload).execute()
+             return result.data[0] if result.data else {}
+        raise
 
 
 async def get_prescriptions(

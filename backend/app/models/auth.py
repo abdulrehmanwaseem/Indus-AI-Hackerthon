@@ -10,6 +10,13 @@ class RegisterRequest(BaseModel):
     role: str = "patient"  # doctor | patient | admin
 
 
+class ProfileUpdateRequest(BaseModel):
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    specialization: Optional[str] = None
+    clinic: Optional[str] = None
+
+
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -32,6 +39,8 @@ class UserProfile(BaseModel):
     email: str
     full_name: str
     role: str
+    specialization: Optional[str] = None
+    clinic: Optional[str] = None
     created_at: Optional[str] = None
 
 

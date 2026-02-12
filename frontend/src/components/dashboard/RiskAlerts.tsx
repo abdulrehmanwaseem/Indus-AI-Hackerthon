@@ -1,12 +1,7 @@
 import { Link } from "react-router-dom";
-import {
-  IconAlertTriangle,
-  IconUsers,
-  IconFileText,
-} from "@tabler/icons-react";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import type { PatientResponse } from "@/lib/api";
 
 interface RiskAlertsProps {
@@ -63,45 +58,24 @@ export function RiskAlerts({ patients, t }: RiskAlertsProps) {
                     <span className="text-sm font-medium">{patient.name}</span>
                   </div>
                   {patient.risk_scores?.slice(0, 2).map((risk) => (
-                    <div
-                      key={risk.condition}
-                      className="flex items-center justify-between text-xs text-muted-foreground mt-1.5"
-                    >
-                      <span>{risk.condition}</span>
-                      <span className="font-mono font-medium">
-                        {risk.score}%
-                      </span>
+                    <div key={risk.condition} className="mt-2 text-xs">
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>{risk.condition}</span>
+                        <span className="font-mono font-medium">
+                          {risk.score}%
+                        </span>
+                      </div>
+                      {risk.reason && (
+                        <p className="text-[10px] text-slate-400 italic mt-0.5 pl-1 border-l-2 border-slate-200">
+                          {risk.reason}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </Link>
               );
             })
           )}
-        </div>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card className="p-4 border-border/60">
-        <h3 className="font-semibold text-sm mb-3">{t("quick_actions")}</h3>
-        <div className="space-y-2">
-          <Link to="/patient-input">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start gap-2"
-            >
-              <IconUsers size={14} /> {t("new_patient")}
-            </Button>
-          </Link>
-          <Link to="/prescriptions">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start gap-2"
-            >
-              <IconFileText size={14} /> {t("scan_prescription")}
-            </Button>
-          </Link>
         </div>
       </Card>
     </div>

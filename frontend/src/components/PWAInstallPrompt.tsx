@@ -16,7 +16,7 @@ export function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
+  const [_isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     console.log("PWAInstallPrompt: Hook registered");

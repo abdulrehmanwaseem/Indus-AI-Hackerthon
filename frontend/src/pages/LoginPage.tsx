@@ -1,34 +1,56 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
-import { IconEye, IconEyeOff, IconLoader2 } from "@tabler/icons-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  IconEye,
+  IconEyeOff,
+  IconLoader2,
+  IconArrowLeft,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { ASSETS } from "@/lib/assets";
+
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loginWithGoogle, isLoading, error, clearError } = useAuth();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"clinic" | "patient">("clinic");
+
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   // Get the redirect path (if user was sent here from a protected route)
   const from =
     (location.state as { from?: { pathname: string } })?.from?.pathname ||
     "/dashboard";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginFormValues) => {
     clearError();
     try {
-      await login({ email, password });
+      await login({ email: data.email, password: data.password });
       navigate(from, { replace: true });
     } catch {
       // Error is handled by AuthContext
@@ -37,6 +59,10 @@ export function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
+      localStorage.setItem(
+        "auth_role_intent",
+        activeTab === "clinic" ? "doctor" : "patient"
+      );
       await loginWithGoogle();
     } catch {
       // Error is handled by AuthContext
@@ -54,6 +80,19 @@ export function LoginPage() {
         </div>
 
         <div className="relative z-10 max-w-lg">
+          {/* Back Button */}
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors mb-8 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
+              <IconArrowLeft size={20} />
+            </div>
+            <span className="text-sm font-semibold tracking-wide uppercase">
+              Back to Home
+            </span>
+          </Link>
+
           {/* Hero image */}
           <div className="mb-8">
             <img
@@ -146,19 +185,28 @@ export function LoginPage() {
             </div>
 
             {/* Error Alert */}
-            {error && (
+            {(error || Object.keys(form.formState.errors).length > 0) && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-sm text-red-600">{error}</p>
+                {error && <p className="text-sm text-red-600 mb-1">{error}</p>}
+                {Object.entries(form.formState.errors).map(([field, err]) => (
+                  <p key={field} className="text-sm text-red-600">
+                    {err?.message as string}
+                  </p>
+                ))}
               </div>
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
                   <Label
                     htmlFor="email"
-                    className="text-sm font-medium text-slate-700"
+                    className={`text-sm font-medium ${
+                      form.formState.errors.email
+                        ? "text-red-600"
+                        : "text-slate-700"
+                    }`}
                   >
                     Email Address
                   </Label>
@@ -168,10 +216,12 @@ export function LoginPage() {
                   id="email"
                   type="email"
                   placeholder="doctor@clinic.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="shadow-sm"
+                  {...form.register("email")}
+                  className={`shadow-sm ${
+                    form.formState.errors.email
+                      ? "border-red-300 focus-visible:ring-red-500"
+                      : ""
+                  }`}
                 />
               </div>
 
@@ -179,7 +229,11 @@ export function LoginPage() {
                 <div className="flex justify-between items-end">
                   <Label
                     htmlFor="password"
-                    className="text-sm font-medium text-slate-700"
+                    className={`text-sm font-medium ${
+                      form.formState.errors.password
+                        ? "text-red-600"
+                        : "text-slate-700"
+                    }`}
                   >
                     Password
                   </Label>
@@ -190,10 +244,12 @@ export function LoginPage() {
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="shadow-sm pr-10"
+                    {...form.register("password")}
+                    className={`shadow-sm pr-10 ${
+                      form.formState.errors.password
+                        ? "border-red-300 focus-visible:ring-red-500"
+                        : ""
+                    }`}
                   />
                   <button
                     type="button"
@@ -209,22 +265,24 @@ export function LoginPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm py-2">
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    className="rounded border-slate-300 text-primary focus:ring-primary/20 w-4 h-4"
-                  />
-                  <span className="text-slate-600 group-hover:text-navy transition-colors">
+              <div className="flex items-center justify-between text-sm w-full py-2">
+                <Field orientation="horizontal" className="gap-2">
+                  <Checkbox id="remember-me" />
+                  <FieldLabel
+                    htmlFor="remember-me"
+                    className="text-slate-600 font-normal cursor-pointer hover:text-navy transition-colors"
+                  >
                     Remember me
-                  </span>
-                </label>
-                <a
-                  href="#"
-                  className="text-primary font-medium hover:underline"
-                >
-                  Forgot password?
-                </a>
+                  </FieldLabel>
+                </Field>
+                <div className="w-full flex justify-end">
+                  <a
+                    href="#"
+                    className="text-primary font-medium hover:underline"
+                  >
+                    Forgot password?
+                  </a>
+                </div>
               </div>
 
               <Button
@@ -273,7 +331,7 @@ export function LoginPage() {
                 to="/register"
                 className="text-primary font-bold hover:underline"
               >
-                Register your clinic
+                Register
               </Link>
             </p>
           </div>

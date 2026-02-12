@@ -157,7 +157,7 @@
     @apply bg-white/40 backdrop-blur-md border border-white/40 shadow-xl;
   }
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-br from-navy via-navy to-primary;
+    @apply bg-clip-text text-transparent bg-linear-to-br from-navy via-navy to-primary;
   }
   .hero-gradient {
     background: radial-gradient(

@@ -96,11 +96,19 @@ export function Layout() {
 
           {/* Nav */}
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Tooltip key={item.path}>
-                  <TooltipTrigger asChild>
+            {navItems
+              .filter((item) => {
+                if (user?.role === "doctor" || user?.role === "admin")
+                  return true;
+                // Patients only see Dashboard, Settings, About
+                return ["dashboard", "settings", "about"].includes(
+                  item.labelKey
+                );
+              })
+              .map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <div key={item.path}>
                     <Link
                       to={item.path}
                       onClick={() => setSidebarOpen(false)}
@@ -122,17 +130,13 @@ export function Layout() {
                       {isActive && (
                         <motion.div
                           layoutId="activeTab"
-                          className="absolute left-0 w-1 h-6 bg-primary rounded-r-full"
+                          className="absolute left-0 w-1 h-8 bg-primary rounded-r-full"
                         />
                       )}
                     </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p>{t(item.labelKey)}</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
+                  </div>
+                );
+              })}
           </nav>
 
           {/* Bottom section */}
@@ -155,7 +159,7 @@ export function Layout() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="icon"
                     className="h-8 w-8"
                     onClick={handleLogout}
@@ -185,7 +189,7 @@ export function Layout() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
                   className="h-9 w-9"
                   onClick={toggleDarkMode}
@@ -200,7 +204,7 @@ export function Layout() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link to="/settings">
-                  <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Button variant="default" size="icon" className="h-9 w-9">
                     <IconUser size={18} />
                   </Button>
                 </Link>

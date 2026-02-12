@@ -1,6 +1,7 @@
 export const ASSETS = {
   IMAGES: {
     HERO: "/landing-hero.png",
+    HERO_2: "/hero.jpg",
     CLINICS:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuDAbIirFqjtHXcOu6MquUcl_zF8OY-mF-Ehhl0FbZQi_gES7dObUJz3LZWNvSJL0DdvrvNhONFYRTr50jqAyzvcmedA-uJ33hPE0XWot24avwEfEaW2sK6j_BGY4MstupSk3ZkY1wPa1XPGoCQLhU8Em-0fLFiZRuGML_YAUxmB20kVSO7PazHyaR_Amicopw5b8lz-oM2jLgQEXfX5fmOF010xBdkfb9Z3HVFho02iJfZ4Zz1DCILdcTjXpw-kaOFRDQDF4GwlJ8Zg",
     PATIENTS:

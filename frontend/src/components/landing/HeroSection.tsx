@@ -6,7 +6,10 @@ import { ASSETS } from "@/lib/assets";
 
 export function HeroSection() {
   return (
-    <section className="relative pt-40 pb-24 overflow-hidden hero-gradient bg-grid-pattern">
+    <section
+      id="home"
+      className="relative pt-40 pb-24 overflow-hidden hero-gradient bg-grid-pattern"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="lg:flex lg:items-center lg:gap-16">
           {/* Left */}

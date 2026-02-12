@@ -14,7 +14,7 @@ import type {
  * Create a new patient with symptoms — triggers AI prioritization & risk analysis
  */
 export async function createPatient(
-  data: PatientCreateRequest,
+  data: PatientCreateRequest
 ): Promise<PatientResponse> {
   const response = await apiClient.post<PatientResponse>("/patients", data);
   return response.data;
@@ -24,7 +24,7 @@ export async function createPatient(
  * Get all patients (with pagination)
  */
 export async function getPatients(
-  params?: PaginationParams,
+  params?: PaginationParams
 ): Promise<PatientListResponse> {
   const response = await apiClient.get<PatientListResponse>("/patients", {
     params: {
@@ -39,10 +39,10 @@ export async function getPatients(
  * Get a single patient by ID
  */
 export async function getPatientById(
-  patientId: string,
+  patientId: string
 ): Promise<PatientResponse> {
   const response = await apiClient.get<PatientResponse>(
-    `/patients/${patientId}`,
+    `/patients/${patientId}`
   );
   return response.data;
 }
@@ -52,4 +52,23 @@ export async function getPatientById(
  */
 export async function deletePatient(patientId: string): Promise<void> {
   await apiClient.delete(`/patients/${patientId}`);
+}
+
+/**
+ * Transcribe patient symptoms from audio file
+ */
+export async function transcribeVoice(audioBlob: Blob): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", audioBlob, "recording.wav");
+
+  const response = await apiClient.post<{ transcription: string }>(
+    "/patients/transcribe-voice",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  return response.data.transcription;
 }

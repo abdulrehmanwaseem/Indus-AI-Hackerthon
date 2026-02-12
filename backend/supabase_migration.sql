@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     full_name TEXT NOT NULL DEFAULT '',
     role TEXT NOT NULL DEFAULT 'patient' CHECK (role IN ('doctor', 'patient', 'admin')),
+    specialization TEXT,
+    clinic TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -66,6 +68,9 @@ CREATE TABLE IF NOT EXISTS public.prescriptions (
     date DATE NOT NULL DEFAULT CURRENT_DATE,
     medications JSONB NOT NULL DEFAULT '[]',
     status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Digitized', 'Verified')),
+    extracted_patient_name TEXT,
+    extracted_age INTEGER,
+    extracted_gender TEXT,
     image_url TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

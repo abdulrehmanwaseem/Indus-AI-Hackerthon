@@ -29,9 +29,9 @@ def get_supabase_admin(settings: Settings = Depends(get_settings)) -> Client:
 
 # ── Gemini model ──────────────────────────────────────
 def get_gemini_model(settings: Settings = Depends(get_settings)):
-    """Returns a configured Gemini 2.5 Flash model instance."""
+    """Returns a configured Gemini 2.0 Flash model instance."""
     genai.configure(api_key=settings.GEMINI_API_KEY)
-    return genai.GenerativeModel("gemini-2.5-flash")
+    return genai.GenerativeModel("gemini-2.0-flash")
 
 
 # ── Auth dependency ───────────────────────────────────
@@ -90,23 +90,29 @@ def role_required(allowed_roles: List[str]):
         current_user: Any = Depends(get_current_user),
         supabase: Client = Depends(get_supabase_admin),
     ):
-        # 1. Check user metadata (injected during registration/login)
+        # Prioritize the "profiles" table as the source of truth for the application
         role = None
-        if current_user.user_metadata:
+        try:
+            res = (
+                supabase.table("profiles")
+                .select("role")
+                .eq("id", str(current_user.id))
+                .single()
+                .execute()
+            )
+            if res.data:
+                role = res.data.get("role")
+        except Exception:
+            # Table might not exist or user not in it yet
+            pass
+
+        # Fallback to Supabase Auth metadata
+        if not role and current_user.user_metadata:
             role = current_user.user_metadata.get("role")
-        
-        # 2. Fallback: Check profiles table if metadata is missing/stale
-        if not role:
-            try:
-                res = supabase.table("profiles").select("role").eq("id", str(current_user.id)).single().execute()
-                if res.data:
-                    role = res.data.get("role")
-            except Exception:
-                pass
-        
-        # 3. Default to patient
+
+        # Default to patient
         role = role or "patient"
-            
+
         if role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

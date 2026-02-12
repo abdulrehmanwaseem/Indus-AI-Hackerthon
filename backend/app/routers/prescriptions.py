@@ -28,6 +28,9 @@ def _format_prescription(row: dict) -> PrescriptionResponse:
         date=str(row["date"]),
         medications=row.get("medications", []),
         status=row["status"],
+        extracted_patient_name=row.get("extracted_patient_name"),
+        extracted_age=row.get("extracted_age"),
+        extracted_gender=row.get("extracted_gender"),
         image_url=row.get("image_url"),
         created_at=str(row.get("created_at", "")),
     )
@@ -93,6 +96,9 @@ async def digitize_and_create(
         status=rx_status,
         image_url=image_url,
         patient_id=patient_id,
+        extracted_patient_name=ocr_result.get("patient_name"),
+        extracted_age=ocr_result.get("age"),
+        extracted_gender=ocr_result.get("gender"),
     )
 
     if not row:
@@ -120,7 +126,7 @@ async def list_prescriptions(
 @router.get("/{prescription_id}", response_model=PrescriptionResponse)
 async def get_prescription(
     prescription_id: str,
-    current_user=Depends(get_current_user),
+    current_user=Depends(role_required(["doctor", "admin"])),
     supabase: Client = Depends(get_supabase_admin),
 ):
     """Get a single prescription by ID."""

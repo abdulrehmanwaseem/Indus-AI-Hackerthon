@@ -64,7 +64,7 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error),
+  (error) => Promise.reject(error)
 );
 
 // ─────────────────────────────────────────────────────────────
@@ -97,6 +97,16 @@ apiClient.interceptors.response.use(
 
     // If 401 and we haven't already retried
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't intercept 401s for login/register/refresh endpoints
+      const isAuthPath =
+        originalRequest.url?.includes("/auth/login") ||
+        originalRequest.url?.includes("/auth/register") ||
+        originalRequest.url?.includes("/auth/refresh");
+
+      if (isAuthPath) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         // Queue this request while refresh is in progress
         return new Promise((resolve, reject) => {
@@ -118,7 +128,13 @@ apiClient.interceptors.response.use(
 
       if (!refreshToken) {
         tokenManager.clearTokens();
-        window.location.href = "/login";
+        // Only redirect if NOT already on login/register
+        if (
+          !window.location.pathname.includes("/login") &&
+          !window.location.pathname.includes("/register")
+        ) {
+          window.location.href = "/login";
+        }
         return Promise.reject(error);
       }
 
@@ -139,7 +155,13 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError as Error, null);
         tokenManager.clearTokens();
-        window.location.href = "/login";
+        // Only redirect if NOT already on login/register
+        if (
+          !window.location.pathname.includes("/login") &&
+          !window.location.pathname.includes("/register")
+        ) {
+          window.location.href = "/login";
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -147,7 +169,7 @@ apiClient.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  },
+  }
 );
 
 // ═══════════════════════════════════════════════════════════════

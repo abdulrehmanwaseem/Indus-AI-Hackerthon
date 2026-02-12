@@ -7,6 +7,7 @@ import type {
   AuthTokens,
   UserProfile,
   OAuthURLResponse,
+  ProfileUpdateRequest,
 } from "./types";
 
 // ─────────────────────────────────────────────────────────────
@@ -40,7 +41,7 @@ export async function refreshToken(data: RefreshRequest): Promise<AuthTokens> {
   const response = await apiClient.post<AuthTokens>("/auth/refresh", data);
   tokenManager.setTokens(
     response.data.access_token,
-    response.data.refresh_token,
+    response.data.refresh_token
   );
   return response.data;
 }
@@ -73,4 +74,14 @@ export function logout(): void {
  */
 export function isAuthenticated(): boolean {
   return tokenManager.hasTokens();
+}
+
+/**
+ * Update current user profile
+ */
+export async function updateProfile(
+  data: ProfileUpdateRequest
+): Promise<UserProfile> {
+  const response = await apiClient.patch<UserProfile>("/auth/me", data);
+  return response.data;
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   IconUser,
@@ -8,6 +8,7 @@ import {
   IconMoon,
   IconSun,
   IconDeviceFloppy,
+  IconLoader2,
 } from "@tabler/icons-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,22 +18,25 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 type SettingsTab = "profile" | "notifications" | "appearance" | "language";
 
 const tabs: { key: SettingsTab; labelKey: string; icon: React.ElementType }[] =
   [
-    { key: "profile", labelKey: "profile", icon: IconUser },
-    { key: "notifications", labelKey: "notifications", icon: IconBell },
-    { key: "appearance", labelKey: "appearance", icon: IconPalette },
+    { key: "profile", labelKey: "Profile", icon: IconUser },
+    { key: "notifications", labelKey: "Notifications", icon: IconBell },
+    { key: "appearance", labelKey: "Appearance", icon: IconPalette },
     { key: "language", labelKey: "language", icon: IconLanguage },
   ];
 
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
+  const { user, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [darkMode, setDarkMode] = useState(
-    document.documentElement.classList.contains("dark"),
+    document.documentElement.classList.contains("dark")
   );
   const [notifications, setNotifications] = useState({
     criticalAlerts: true,
@@ -40,6 +44,27 @@ export function SettingsPage() {
     prescriptionUpdates: false,
     email: true,
   });
+
+  const [formData, setFormData] = useState({
+    full_name: "",
+    email: "",
+    specialization: "",
+    clinic: "",
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Initialize form with user data
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        full_name: user.full_name || "",
+        email: user.email || "",
+        specialization: user.specialization || "",
+        clinic: user.clinic || "",
+      });
+    }
+  }, [user]);
 
   const toggleDark = () => {
     setDarkMode(!darkMode);
@@ -52,8 +77,35 @@ export function SettingsPage() {
     document.documentElement.lang = lng;
   };
 
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      await updateProfile({
+        full_name: formData.full_name,
+        specialization: formData.specialization,
+        clinic: formData.clinic,
+      });
+      toast.success(t("settings_updated", "Settings updated successfully"));
+    } catch (err) {
+      toast.error(t("update_failed", "Failed to update profile"));
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Get initials from user name
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -79,7 +131,7 @@ export function SettingsPage() {
                 }`}
               >
                 <tab.icon size={18} />
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             ))}
           </nav>
@@ -97,15 +149,16 @@ export function SettingsPage() {
                   Profile Information
                 </h2>
                 <div className="flex items-center gap-4 mb-6">
-                  <Avatar className="w-16 h-16" size="lg">
+                  <Avatar className="w-16 h-16">
                     <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
-                      DR
+                      {user ? getInitials(user.full_name) : "?"}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">Dr. Saeed Ahmed</p>
-                    <p className="text-sm text-muted-foreground">
-                      Cardiologist
+                    <p className="font-medium">{user?.full_name}</p>
+                    <p className="text-sm text-muted-foreground capitalize">
+                      {user?.role}{" "}
+                      {user?.specialization && `• ${user.specialization}`}
                     </p>
                   </div>
                 </div>
@@ -113,27 +166,67 @@ export function SettingsPage() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="full-name">Full Name</Label>
-                    <Input id="full-name" defaultValue="Dr. Saeed Ahmed" />
+                    <Input
+                      id="full-name"
+                      value={formData.full_name}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          full_name: e.target.value,
+                        }))
+                      }
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="settings-email">Email</Label>
                     <Input
                       id="settings-email"
                       type="email"
-                      defaultValue="dr.saeed@clinic.com"
+                      value={formData.email}
+                      disabled
+                      className="bg-muted/50"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="specialization">Specialization</Label>
-                    <Input id="specialization" defaultValue="Cardiology" />
+                    <Input
+                      id="specialization"
+                      value={formData.specialization}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          specialization: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. Cardiology"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="clinic">{t("clinic", "Clinic")}</Label>
-                    <Input id="clinic" defaultValue="City Heart Clinic" />
+                    <Input
+                      id="clinic"
+                      value={formData.clinic}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          clinic: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. City Health Center"
+                    />
                   </div>
                 </div>
-                <Button className="mt-6 gap-2">
-                  <IconDeviceFloppy size={16} /> {t("save_changes")}
+                <Button
+                  className="mt-6 gap-2"
+                  onClick={handleSaveChanges}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <IconLoader2 size={16} className="animate-spin" />
+                  ) : (
+                    <IconDeviceFloppy size={16} />
+                  )}
+                  {t("save_changes")}
                 </Button>
               </Card>
             </motion.div>

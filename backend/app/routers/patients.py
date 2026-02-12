@@ -2,7 +2,7 @@
 Patient Router — CRUD + AI triage pipeline.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from supabase import Client
 from google.generativeai import GenerativeModel
 
@@ -12,8 +12,35 @@ from app.services import patient_service
 from app.agents.prioritization import assess_patient_priority
 from app.agents.risk_analyzer import analyze_risks
 from app.agents.summary import generate_summary
+from app.agents.voice_transcription import transcribe_audio
 
 router = APIRouter(prefix="/patients", tags=["Patients"])
+
+@router.post("/transcribe-voice")
+async def transcribe_voice(
+    file: UploadFile = File(...),
+    current_user=Depends(role_required(["doctor", "admin"])),
+    gemini: GenerativeModel = Depends(get_gemini_model),
+):
+    """
+    Transcribe patient symptoms from audio file using Gemini.
+    """
+    # Relaxed validation to handle codecs (e.g., 'audio/webm;codecs=opus')
+    allowed_types = ["audio/wav", "audio/mpeg", "audio/webm", "audio/ogg", "audio/x-wav", "audio/mp3"]
+    if not any(t in file.content_type for t in allowed_types):
+         raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid audio format '{file.content_type}'. Supported: WAV, MP3, WebM, OGG.",
+        )
+    
+    audio_bytes = await file.read()
+    transcription = await transcribe_audio(
+        model=gemini,
+        audio_bytes=audio_bytes,
+        content_type=file.content_type
+    )
+    
+    return {"transcription": transcription}
 
 
 def _make_avatar(name: str) -> str:
@@ -26,6 +53,25 @@ def _make_avatar(name: str) -> str:
 
 def _format_patient(row: dict) -> PatientResponse:
     """Convert a DB row dict to a PatientResponse."""
+    import json
+    
+    summary = row.get("ai_summary", "")
+    # Handle if ai_summary is stored as a JSON string or a dict
+    if isinstance(summary, str) and (summary.startswith("{") or summary.startswith("[")):
+        try:
+            summary = json.loads(summary)
+        except:
+            pass
+            
+    # If it's a simple string (old data), wrap it in the new format for the UI
+    if isinstance(summary, str):
+        summary = {
+            "clinical_summary_en": summary,
+            "clinical_summary_ur": "قدیم ڈیٹا کیلئے خلاصہ دستیاب نہیں ہے۔",
+            "patient_friendly_summary": "Legacy summary data.",
+            "suggested_actions": ["Review legacy data"]
+        }
+
     return PatientResponse(
         id=str(row["id"]),
         name=row["name"],
@@ -38,7 +84,7 @@ def _format_patient(row: dict) -> PatientResponse:
         avatar=row.get("avatar", ""),
         history=row.get("history", []),
         risk_scores=row.get("risk_scores", []),
-        ai_summary=row.get("ai_summary", ""),
+        ai_summary=summary,
         created_at=str(row.get("created_at", "")),
     )
 
@@ -46,7 +92,7 @@ def _format_patient(row: dict) -> PatientResponse:
 @router.post("", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
 async def create_patient(
     body: PatientCreateRequest,
-    current_user=Depends(get_current_user),
+    current_user=Depends(role_required(["doctor", "admin"])),
     supabase: Client = Depends(get_supabase_admin),
     gemini: GenerativeModel = Depends(get_gemini_model),
 ):
@@ -119,7 +165,7 @@ async def create_patient(
             "risk_scores": risk_scores,
             "ai_summary": ai_summary,
         }
-        logger.info(f"   ✅ Patient data built")
+        logger.info(f"   ✅ Patient data built (with AI insights)")
 
         # ── Step 5: Store in DB ──
         logger.info(f"\n5️⃣  STEP 5: STORE IN DATABASE")

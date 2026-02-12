@@ -17,6 +17,7 @@ export {
   getCurrentUser,
   logout,
   isAuthenticated,
+  updateProfile,
 } from "./auth";
 
 // Patients API

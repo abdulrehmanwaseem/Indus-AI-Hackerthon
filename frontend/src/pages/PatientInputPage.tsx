@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   IconKeyboard,
   IconMicrophone,
@@ -11,6 +11,8 @@ import {
   IconX,
   IconLoader2,
   IconAlertCircle,
+  IconSparkles,
+  IconWaveSine,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +21,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { createPatient } from "@/lib/api";
+import { transcribeVoice } from "@/lib/api/patients";
+import { uploadPrescription } from "@/lib/api/prescriptions";
+import { toast } from "sonner";
 
 type Tab = "text" | "voice" | "upload";
 
@@ -36,10 +41,17 @@ export function PatientInputPage() {
   const [oxygenSaturation, setOxygenSaturation] = useState("");
   const [recording, setRecording] = useState(false);
   const [recordTime, setRecordTime] = useState(0);
-  const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDigitizing, setIsDigitizing] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+
+  // Refs for recording
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<any>(null);
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "text", label: "Text Input", icon: IconKeyboard },
@@ -47,10 +59,55 @@ export function PatientInputPage() {
     { key: "upload", label: "Upload Prescription", icon: IconUpload },
   ];
 
+  const handleDigitize = async () => {
+    if (!selectedFile) return;
+
+    try {
+      setIsDigitizing(true);
+      setError(null);
+
+      // We use "Prescription Upload" as a placeholder name since we'll extract the real one
+      const result = await uploadPrescription(selectedFile, "New Patient");
+
+      if (result.extracted_patient_name) {
+        setName(result.extracted_patient_name);
+      }
+      if (result.extracted_age) {
+        setAge(result.extracted_age.toString());
+      }
+      if (result.extracted_gender) {
+        setGender(result.extracted_gender);
+      }
+
+      // Append medications to symptoms or medical history
+      if (result.medications && result.medications.length > 0) {
+        const medsList = result.medications
+          .map((m) => `• ${m.drug} (${m.dosage}, ${m.frequency})`)
+          .join("\n");
+
+        setSymptoms((prev) =>
+          prev
+            ? `${prev}\n\nPrescription Medications:\n${medsList}`
+            : `Prescription Medications:\n${medsList}`
+        );
+      }
+
+      toast.success("Prescription digitized successfully! Form updated.");
+      setActiveTab("text"); // Switch back to text to review the data
+    } catch (err) {
+      console.error("Digitization failed:", err);
+      setError(
+        "AI was unable to read the prescription. Please try a clearer image or use manual entry."
+      );
+    } finally {
+      setIsDigitizing(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!name.trim() || !symptoms.trim() || !age || !gender) {
       setError(
-        "Please fill in all required fields (Name, Symptoms, Age, Gender)",
+        "Please fill in all required fields (Name, Symptoms, Age, Gender)"
       );
       return;
     }
@@ -89,27 +146,107 @@ export function PatientInputPage() {
     }
   };
 
-  const toggleRecording = () => {
-    if (recording) {
-      setRecording(false);
-      setRecordTime(0);
-    } else {
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Determine best supported MIME type
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : MediaRecorder.isTypeSupported("audio/ogg")
+            ? "audio/ogg"
+            : "";
+
+      console.log("🎤 Selected MIME type:", mimeType);
+
+      const mediaRecorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType } : {}
+      );
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const finalType = mediaRecorder.mimeType || "audio/webm";
+        console.log(
+          `🎤 Recording stopped. Type: ${finalType}, Chunks: ${audioChunksRef.current.length}`
+        );
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: finalType });
+        await handleTranscription(audioBlob);
+
+        // Stop all tracks to release the microphone
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      // Collect data every 200ms
+      mediaRecorder.start(200);
       setRecording(true);
-      const interval = setInterval(() => {
+      setRecordTime(0);
+
+      timerRef.current = setInterval(() => {
         setRecordTime((t) => {
-          if (t >= 30) {
-            clearInterval(interval);
-            setRecording(false);
-            return 0;
+          if (t >= 60) {
+            stopRecording();
+            return t;
           }
           return t + 1;
         });
       }, 1000);
+    } catch (err) {
+      console.error("Microphone access denied:", err);
+      toast.error(
+        "Microphone access denied. Please enable it in your browser settings."
+      );
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && recording) {
+      mediaRecorderRef.current.stop();
+      setRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
+
+  const handleTranscription = async (blob: Blob) => {
+    try {
+      setIsTranscribing(true);
+      const text = await transcribeVoice(blob);
+      if (text) {
+        setSymptoms((prev) =>
+          prev ? `${prev}\n\nVoice Summary: ${text}` : text
+        );
+        toast.success("Voice transcribed successfully!");
+        setActiveTab("text");
+      }
+    } catch (err) {
+      console.error("Transcription failed:", err);
+      toast.error("AI was unable to transcribe the audio. Please try again.");
+    } finally {
+      setIsTranscribing(false);
+      setRecordTime(0);
+    }
+  };
+
+  const toggleRecording = () => {
+    if (recording) {
+      stopRecording();
+    } else {
+      startRecording();
     }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -309,64 +446,121 @@ export function PatientInputPage() {
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <Card className="p-8 border-border/60 text-center">
-            <div className="mb-6">
-              <h3 className="font-semibold text-lg mb-2">Voice Recording</h3>
-              <p className="text-sm text-muted-foreground">
-                Tap the microphone and describe the patient's symptoms
+          <Card className="p-8 border-border/60 text-center relative overflow-hidden">
+            {isTranscribing && (
+              <div className="absolute inset-0 bg-background/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center gap-4">
+                <IconLoader2 size={40} className="text-primary animate-spin" />
+                <p className="text-sm font-medium">
+                  AI is transcribing your voice...
+                </p>
+              </div>
+            )}
+
+            <div className="mb-8">
+              <div className="inline-flex items-center gap-2 mb-4">
+                <Badge
+                  variant="outline"
+                  className="text-primary border-primary/20 bg-primary/5 gap-1.5"
+                >
+                  <IconSparkles size={12} />
+                  AI Voice Transcription
+                </Badge>
+              </div>
+              <h3 className="font-semibold text-xl mb-2">Record Symptoms</h3>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                Clearly describe the patient's symptoms, duration, and any
+                observable signs.
               </p>
             </div>
 
-            <div className="flex flex-col items-center gap-6">
-              <motion.button
-                onClick={toggleRecording}
-                whileTap={{ scale: 0.95 }}
-                className={`w-24 h-24 rounded-full flex items-center justify-center transition-all ${
-                  recording
-                    ? "bg-destructive text-destructive-foreground shadow-lg shadow-destructive/30"
-                    : "bg-primary text-primary-foreground hover:shadow-lg hover:shadow-primary/30"
-                }`}
-              >
-                {recording ? (
-                  <IconPlayerStop size={36} />
-                ) : (
-                  <IconMicrophone size={36} />
-                )}
-              </motion.button>
+            <div className="flex flex-col items-center gap-8">
+              <div className="relative">
+                <AnimatePresence>
+                  {recording && (
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1.5, opacity: 0.2 }}
+                      exit={{ scale: 2, opacity: 0 }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="absolute inset-0 rounded-full bg-destructive"
+                    />
+                  )}
+                </AnimatePresence>
 
-              {recording && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center gap-3"
+                <motion.button
+                  onClick={toggleRecording}
+                  disabled={isTranscribing}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all z-20 ${
+                    recording
+                      ? "bg-destructive text-destructive-foreground shadow-xl shadow-destructive/40"
+                      : "bg-primary text-primary-foreground hover:shadow-xl hover:shadow-primary/40"
+                  } ${isTranscribing ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
-                  <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="w-1 bg-destructive rounded-full"
-                        animate={{
-                          height: [12, 24, 12],
-                        }}
-                        transition={{
-                          duration: 0.5,
-                          repeat: Infinity,
-                          delay: i * 0.1,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-sm font-medium text-destructive">
-                    Recording — {recordTime}s
-                  </span>
-                </motion.div>
-              )}
+                  {recording ? (
+                    <IconPlayerStop size={40} />
+                  ) : (
+                    <IconMicrophone size={40} />
+                  )}
+                </motion.button>
+              </div>
 
-              {!recording && recordTime === 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  Tap to start recording symptoms
-                </Badge>
-              )}
+              <div className="h-12 flex flex-col items-center justify-center gap-2">
+                <AnimatePresence mode="wait">
+                  {recording ? (
+                    <motion.div
+                      key="recording"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="flex flex-col items-center gap-1"
+                    >
+                      <div className="flex gap-1.5 mb-1">
+                        {[...Array(8)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="w-1.5 bg-destructive rounded-full"
+                            animate={{
+                              height: [16, 32, 16],
+                            }}
+                            transition={{
+                              duration: 0.6,
+                              repeat: Infinity,
+                              delay: i * 0.08,
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm font-bold text-destructive animate-pulse">
+                        REC {Math.floor(recordTime / 60)}:
+                        {(recordTime % 60).toString().padStart(2, "0")}
+                      </span>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="idle"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex flex-col items-center gap-2"
+                    >
+                      <p className="text-sm font-medium">
+                        {isTranscribing
+                          ? "Processing..."
+                          : "Tap to start recording"}
+                      </p>
+                      <div className="flex gap-4">
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                          <IconWaveSine size={12} /> Clear Audio
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                          <IconSparkles size={12} /> AI Powered
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </Card>
         </motion.div>
@@ -379,9 +573,18 @@ export function PatientInputPage() {
           animate={{ opacity: 1, x: 0 }}
         >
           <Card className="p-6 border-border/60">
-            <h3 className="font-semibold mb-4">Upload Prescription Image</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Upload Prescription Image</h3>
+              <Badge
+                variant="outline"
+                className="text-primary border-primary/20 bg-primary/5 gap-1.5"
+              >
+                <IconSparkles size={12} />
+                AI Auto-Fill
+              </Badge>
+            </div>
 
-            {!uploadedFile ? (
+            {!selectedFile ? (
               <label
                 htmlFor="file-upload"
                 className="flex flex-col items-center justify-center gap-4 p-12 border-2 border-dashed border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
@@ -392,17 +595,17 @@ export function PatientInputPage() {
                 <div className="text-center">
                   <p className="font-medium">Drop prescription image here</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    or click to browse • PNG, JPG, PDF up to 10MB
+                    or click to browse • PNG, JPG, WebP up to 10MB
                   </p>
                 </div>
                 <input
                   id="file-upload"
                   type="file"
-                  accept="image/*,.pdf"
+                  accept="image/*"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) setUploadedFile(file.name);
+                    if (file) setSelectedFile(file);
                   }}
                 />
               </label>
@@ -417,16 +620,18 @@ export function PatientInputPage() {
                     <IconPhoto size={20} className="text-primary" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{uploadedFile}</p>
+                    <p className="font-medium text-sm">{selectedFile.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      Ready for digitization
+                      {(selectedFile.size / 1024).toFixed(1)} KB • Ready to
+                      extract
                     </p>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => setUploadedFile(null)}
+                    onClick={() => setSelectedFile(null)}
+                    disabled={isDigitizing}
                   >
                     <IconX size={16} />
                   </Button>
@@ -434,11 +639,30 @@ export function PatientInputPage() {
               </motion.div>
             )}
 
-            {uploadedFile && (
-              <Button onClick={handleSubmit} className="gap-2 mt-4">
-                <IconSend size={16} /> Digitize Prescription
+            {selectedFile && (
+              <Button
+                onClick={handleDigitize}
+                className="gap-2 mt-4 w-full sm:w-auto"
+                disabled={isDigitizing}
+              >
+                {isDigitizing ? (
+                  <>
+                    <IconLoader2 size={16} className="animate-spin" />
+                    AI is Reading Prescription...
+                  </>
+                ) : (
+                  <>
+                    <IconSparkles size={16} />
+                    Auto-Fill from Prescription
+                  </>
+                )}
               </Button>
             )}
+
+            <p className="text-[10px] text-muted-foreground text-center mt-4">
+              AI extraction creates a structured draft. Please review all fields
+              before final submission.
+            </p>
           </Card>
         </motion.div>
       )}

@@ -11,36 +11,19 @@ from PIL import Image
 import io
 from google.generativeai import GenerativeModel
 
+import re
+
 logger = logging.getLogger(__name__)
 
-PRESCRIPTION_OCR_PROMPT = """You are a medical prescription digitizer AI for Tandarust AI.
+PRESCRIPTION_OCR_PROMPT = """Read this prescription image. 
+Extract the following fields into JSON:
+- patient_name (at the top)
+- age (number)
+- gender (Male/Female)
+- medications (list of {drug, dosage, frequency, duration})
+- notes (any extra info like 'Makati City' or 'Next to hospital')
 
-You are given an image of a handwritten medical prescription. Your task is to extract ALL medications from it and return structured data.
-
-**Instructions:**
-1. Carefully read the handwritten prescription image.
-2. Extract every medication listed, including:
-   - Drug name (use standard/generic name if possible)
-   - Dosage (e.g., 500mg, 5ml, 100mcg)
-   - Frequency (e.g., Once daily, Twice daily, Every 6 hours, PRN)
-   - Duration (e.g., 7 days, Ongoing, As needed)
-3. If a field is illegible, make your best guess and note it in the drug name with [unclear].
-4. If the image is not a prescription or is completely unreadable, return an empty medications array.
-
-**You MUST respond with ONLY valid JSON in this exact format:**
-{{
-    "medications": [
-        {{
-            "drug": "<medication name>",
-            "dosage": "<dosage>",
-            "frequency": "<frequency>",
-            "duration": "<duration>"
-        }}
-    ],
-    "notes": "<any additional notes about legibility or special instructions>"
-}}
-
-Respond with JSON only. No markdown, no code fences, no extra text.
+Respond with JSON only. No text, no markdown.
 """
 
 
@@ -67,6 +50,7 @@ async def digitize_prescription(
         # Send multimodal request (image + text prompt)
         response = model.generate_content([PRESCRIPTION_OCR_PROMPT, image])
         raw_text = response.text.strip()
+        logger.debug(f"💊 RAW AI RESPONSE: {raw_text}")
 
         # Clean potential markdown code fences
         if raw_text.startswith("```"):
@@ -76,25 +60,48 @@ async def digitize_prescription(
         raw_text = raw_text.strip()
 
         result = json.loads(raw_text)
-        medications = result.get("medications", [])
+        
+        # Robust Name Extraction
+        patient_name = result.get("patient_name") or result.get("name") or result.get("Patient Name")
 
-        # Validate medication entries
+        # Robust Gender Parsing
+        gender_val = result.get("gender") or result.get("sex") or result.get("Sex")
+        gender = None
+        if gender_val:
+            gender_str = str(gender_val).strip().lower()
+            if gender_str.startswith("m") or "male" in gender_str: gender = "Male"
+            elif gender_str.startswith("f") or "female" in gender_str: gender = "Female"
+            else: gender = "Other"
+
+        # Ensure age is integer
+        age_val = result.get("age") or result.get("Age")
+        age = None
+        try:
+            if age_val is not None:
+                # Use re (already imported at top or here)
+                age_digits = "".join(re.findall(r'\d+', str(age_val)))
+                age = int(age_digits) if age_digits else None
+        except (ValueError, TypeError):
+            age = None
+
+        medications = result.get("medications", [])
         validated_meds = []
         for med in medications:
             validated_meds.append({
-                "drug": med.get("drug", "Unknown"),
+                "drug": med.get("drug") or med.get("name") or "Unknown",
                 "dosage": med.get("dosage", "N/A"),
                 "frequency": med.get("frequency", "N/A"),
                 "duration": med.get("duration", "N/A"),
             })
 
         logger.info(f"   ✅ SUCCESS - {len(validated_meds)} medications extracted")
-        for med in validated_meds:
-            logger.info(f"      • {med['drug']}: {med['dosage']} {med['frequency']}")
-        if result.get("notes"):
-            logger.debug(f"   Notes: {result.get('notes')}")
+        if patient_name:
+            logger.info(f"   👤 Patient: {patient_name} ({age}, {gender})")
 
         return {
+            "patient_name": patient_name,
+            "age": age,
+            "gender": gender,
             "medications": validated_meds,
             "notes": result.get("notes", ""),
         }

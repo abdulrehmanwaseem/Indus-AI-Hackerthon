@@ -1,31 +1,61 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
-import { IconEye, IconEyeOff, IconLoader2 } from "@tabler/icons-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  IconEye,
+  IconEyeOff,
+  IconLoader2,
+  IconArrowLeft,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { ASSETS } from "@/lib/assets";
 
+const registerSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .regex(/^[a-zA-Z\s]+$/, "Name can only contain letters and spaces"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
+
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { register, loginWithGoogle, isLoading, error, clearError } = useAuth();
+  const {
+    register: apiRegister,
+    loginWithGoogle,
+    isLoading,
+    error,
+    clearError,
+  } = useAuth();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"clinic" | "patient">("clinic");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = async (data: RegisterFormValues) => {
     clearError();
     try {
-      await register({
-        email,
-        password,
-        full_name: name,
+      await apiRegister({
+        email: data.email,
+        password: data.password,
+        full_name: data.name,
         role: activeTab === "clinic" ? "doctor" : "patient",
       });
       navigate("/dashboard", { replace: true });
@@ -36,6 +66,10 @@ export function RegisterPage() {
 
   const handleGoogleSignup = async () => {
     try {
+      localStorage.setItem(
+        "auth_role_intent",
+        activeTab === "clinic" ? "doctor" : "patient"
+      );
       await loginWithGoogle();
     } catch {
       // Error is handled by AuthContext
@@ -53,12 +87,25 @@ export function RegisterPage() {
         </div>
 
         <div className="relative z-10 max-w-lg">
+          {/* Back Button */}
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors mb-8 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
+              <IconArrowLeft size={20} />
+            </div>
+            <span className="text-sm font-semibold tracking-wide uppercase">
+              Back to Home
+            </span>
+          </Link>
+
           {/* Hero image */}
           <div className="mb-8">
             <img
               alt="Doctor with AI assistant"
               className="rounded-2xl shadow-2xl border border-white/10 w-full h-80 aspect-video object-cover"
-              src={ASSETS.IMAGES.HERO}
+              src={ASSETS.IMAGES.HERO_2}
             />
           </div>
 
@@ -67,7 +114,7 @@ export function RegisterPage() {
           </h1>
           <p className="text-slate-400 text-lg">
             Create your account and start transforming patient care with
-            AI-powered diagnostics, smart triage, and digital prescriptions.
+            AI-powered diagnostics, smart triage and digital prescriptions.
           </p>
 
           {/* Social proof */}
@@ -144,19 +191,28 @@ export function RegisterPage() {
             </div>
 
             {/* Error Alert */}
-            {error && (
+            {(error || Object.keys(form.formState.errors).length > 0) && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-sm text-red-600">{error}</p>
+                {error && <p className="text-sm text-red-600 mb-1">{error}</p>}
+                {Object.entries(form.formState.errors).map(([field, err]) => (
+                  <p key={field} className="text-sm text-red-600">
+                    {err?.message as string}
+                  </p>
+                ))}
               </div>
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
                   <Label
                     htmlFor="name"
-                    className="text-sm font-medium text-slate-700"
+                    className={`text-sm font-medium ${
+                      form.formState.errors.name
+                        ? "text-red-600"
+                        : "text-slate-700"
+                    }`}
                   >
                     Full Name
                   </Label>
@@ -164,11 +220,13 @@ export function RegisterPage() {
                 </div>
                 <Input
                   id="name"
-                  placeholder="Dr. Ahmed Khan"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="shadow-sm"
+                  placeholder="Ahmed Khan"
+                  {...form.register("name")}
+                  className={`shadow-sm ${
+                    form.formState.errors.name
+                      ? "border-red-300 focus-visible:ring-red-500"
+                      : ""
+                  }`}
                 />
               </div>
 
@@ -176,7 +234,11 @@ export function RegisterPage() {
                 <div className="flex justify-between items-end">
                   <Label
                     htmlFor="reg-email"
-                    className="text-sm font-medium text-slate-700"
+                    className={`text-sm font-medium ${
+                      form.formState.errors.email
+                        ? "text-red-600"
+                        : "text-slate-700"
+                    }`}
                   >
                     Email Address
                   </Label>
@@ -186,10 +248,12 @@ export function RegisterPage() {
                   id="reg-email"
                   type="email"
                   placeholder="doctor@clinic.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="shadow-sm"
+                  {...form.register("email")}
+                  className={`shadow-sm ${
+                    form.formState.errors.email
+                      ? "border-red-300 focus-visible:ring-red-500"
+                      : ""
+                  }`}
                 />
               </div>
 
@@ -197,7 +261,11 @@ export function RegisterPage() {
                 <div className="flex justify-between items-end">
                   <Label
                     htmlFor="reg-password"
-                    className="text-sm font-medium text-slate-700"
+                    className={`text-sm font-medium ${
+                      form.formState.errors.password
+                        ? "text-red-600"
+                        : "text-slate-700"
+                    }`}
                   >
                     Password
                   </Label>
@@ -208,10 +276,12 @@ export function RegisterPage() {
                     id="reg-password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="shadow-sm pr-10"
+                    {...form.register("password")}
+                    className={`shadow-sm pr-10 ${
+                      form.formState.errors.password
+                        ? "border-red-300 focus-visible:ring-red-500"
+                        : ""
+                    }`}
                   />
                   <button
                     type="button"
@@ -273,7 +343,7 @@ export function RegisterPage() {
                 to="/login"
                 className="text-primary font-bold hover:underline"
               >
-                Sign in
+                Login
               </Link>
             </p>
           </div>

@@ -10,24 +10,46 @@ import { useAuth } from "@/contexts/AuthContext";
 export function AuthCallback() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const { handleOAuthCallback } = useAuth();
+  const { handleOAuthCallback, updateProfile } = useAuth();
 
   useEffect(() => {
     const processCallback = async () => {
       try {
         // Get tokens from URL hash (Supabase sends them in hash fragment)
         const hashParams = new URLSearchParams(
-          window.location.hash.substring(1),
+          window.location.hash.substring(1)
         );
         const accessToken = hashParams.get("access_token");
         const refreshToken = hashParams.get("refresh_token");
 
         if (accessToken && refreshToken) {
           // Store tokens and update auth context
-          await handleOAuthCallback(accessToken, refreshToken);
+          const userProfile = await handleOAuthCallback(
+            accessToken,
+            refreshToken
+          );
 
-          // Redirect to dashboard
-          navigate("/dashboard", { replace: true });
+          // Check for role intent
+          const roleIntent = localStorage.getItem("auth_role_intent");
+
+          // Role Stickiness: Only upgrade to 'doctor' if intent is 'doctor' and current role is 'patient'
+          // We don't allow downgrading a 'doctor' to a 'patient' via simple tab selection
+          if (roleIntent === "doctor" && userProfile.role === "patient") {
+            try {
+              await updateProfile({ role: roleIntent });
+            } catch (err) {
+              console.error("Failed to sync role intent:", err);
+            }
+          }
+          localStorage.removeItem("auth_role_intent");
+
+          // Redirect based on role
+          const finalRole = roleIntent || userProfile.role;
+          if (finalRole === "doctor") {
+            navigate("/dashboard", { replace: true });
+          } else {
+            navigate("/dashboard", { replace: true }); // Both go to /dashboard, App.tsx handles the component
+          }
         } else {
           // Check for error
           const errorDesc =

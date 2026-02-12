@@ -16,13 +16,13 @@ export function LandingPage() {
       <nav className="fixed top-0 w-full z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            <div className="flex items-center gap-2.5">
+            <a href="#home" className="flex items-center gap-2.5">
               <img
                 src={ASSETS.IMAGES.BRAND_LOGO}
                 alt="Tandarust AI"
                 className="h-12 w-auto"
               />
-            </div>
+            </a>
             <div className="hidden md:flex items-center space-x-10">
               <a
                 href="#features"
@@ -50,7 +50,7 @@ export function LandingPage() {
             </div>
             {/* mobile */}
             <Link to="/register" className="md:hidden">
-              <Button size="sm" className="rounded-full">
+              <Button size="sm" className="rounded-full h-8">
                 Get Started
               </Button>
             </Link>
@@ -89,13 +89,13 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-12 mb-20">
             <div className="col-span-2">
-              <div className="flex items-center gap-2.5 mb-8">
+              <a href="#home" className="flex items-center gap-2.5 mb-8">
                 <img
                   src={ASSETS.IMAGES.BRAND_LOGO}
                   alt="Tandarust AI"
                   className="h-10 w-auto"
                 />
-              </div>
+              </a>
               <p className="text-slate-500 text-sm leading-relaxed mb-8 max-w-xs">
                 Pioneering the intersection of clinical excellence and
                 artificial intelligence for a healthier world.

@@ -15,6 +15,7 @@ from app.models.auth import (
     AuthTokens,
     UserProfile,
     OAuthURLResponse,
+    ProfileUpdateRequest,
 )
 from app.config import Settings, get_settings
 
@@ -113,17 +114,22 @@ async def login(
             # Profile table doesn't exist or profile not found - use metadata
             profile_data = {}
 
-        # Get full_name from profile or user metadata
+        # Get full_name and role with metadata fallbacks
         full_name = profile_data.get("full_name") or ""
         if not full_name and user.user_metadata:
             full_name = user.user_metadata.get("full_name") or user.user_metadata.get("name", "")
+        
+        role = profile_data.get("role")
+        if not role and user.user_metadata:
+            role = user.user_metadata.get("role")
+        role = role or "patient"
 
         return AuthResponse(
             user=UserProfile(
                 id=str(user.id),
                 email=user.email or "",
                 full_name=full_name,
-                role=profile_data.get("role", "patient"),
+                role=role,
                 created_at=str(user.created_at) if user.created_at else None,
             ),
             tokens=AuthTokens(
@@ -208,7 +214,7 @@ async def get_me(
         try:
             profile = (
                 supabase.table("profiles")
-                .select("full_name, role, created_at")
+                .select("full_name, role, specialization, clinic, created_at")
                 .eq("id", str(current_user.id))
                 .single()
                 .execute()
@@ -219,16 +225,23 @@ async def get_me(
             # Fall back to user metadata from Supabase auth
             data = {}
 
-        # Get full_name from profile or user metadata
+        # Get full_name and role with metadata fallbacks
         full_name = data.get("full_name") or ""
         if not full_name and current_user.user_metadata:
             full_name = current_user.user_metadata.get("full_name") or current_user.user_metadata.get("name", "")
+        
+        role = data.get("role")
+        if not role and current_user.user_metadata:
+            role = current_user.user_metadata.get("role")
+        role = role or "patient"
 
         return UserProfile(
             id=str(current_user.id),
             email=current_user.email or "",
             full_name=full_name,
-            role=data.get("role", "patient"),
+            role=role,
+            specialization=data.get("specialization") or current_user.user_metadata.get("specialization"),
+            clinic=data.get("clinic") or current_user.user_metadata.get("clinic"),
             created_at=str(data.get("created_at", current_user.created_at or "")),
         )
 
@@ -236,4 +249,50 @@ async def get_me(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch profile: {str(e)}",
+        )
+
+
+@router.patch("/me", response_model=UserProfile)
+async def update_profile(
+    body: ProfileUpdateRequest,
+    current_user=Depends(get_current_user),
+    supabase: Client = Depends(get_supabase_admin),
+):
+    """Update the currently authenticated user's profile metadata and record."""
+    try:
+        update_data = {}
+        if body.full_name is not None:
+            update_data["full_name"] = body.full_name
+        if body.role is not None:
+            update_data["role"] = body.role
+        if body.specialization is not None:
+            update_data["specialization"] = body.specialization
+        if body.clinic is not None:
+            update_data["clinic"] = body.clinic
+
+        if not update_data:
+            return await get_me(current_user, supabase)
+
+        # Update Supabase Auth metadata
+        supabase.auth.admin.update_user_by_id(
+            str(current_user.id),
+            {"user_metadata": update_data}
+        )
+
+        # Update profiles table if it exists
+        try:
+            supabase.table("profiles").upsert({
+                "id": str(current_user.id),
+                **update_data
+            }).execute()
+        except Exception:
+            # Table might not exist in the simple setup
+            pass
+
+        return await get_me(current_user, supabase)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update profile: {str(e)}",
         )

@@ -41,7 +41,8 @@ Given a patient's information, identify potential health risks and score each on
         {{
             "condition": "<condition name>",
             "score": <integer 0-100>,
-            "level": "<Low|Medium|High|Critical>"
+            "level": "<Low|Medium|High|Critical>",
+            "reason": "<one sentence explanation of why this risk was identified>"
         }}
     ]
 }}
@@ -71,10 +72,7 @@ async def analyze_risks(
     )
 
     logger.info(f"⚠️  RISK ANALYZER AGENT")
-    logger.info(f"   Age: {age}, Gender: {gender}")
-    logger.info(f"   Symptoms: {symptoms}")
-    logger.info(f"   Model: Gemini 2.5 Flash")
-    logger.info(f"   Status: STARTING...")
+    logger.info(f"   Model: Gemini 2.0 Flash (Risk Explanation)")
 
     try:
         response = model.generate_content(prompt)
@@ -101,11 +99,12 @@ async def analyze_risks(
                 "condition": rs.get("condition", "Unknown"),
                 "score": score,
                 "level": level,
+                "reason": rs.get("reason", "Based on clinical symptom matching.")
             })
 
         logger.info(f"   ✅ SUCCESS - {len(validated)} conditions identified")
         for risk in validated:
-            logger.info(f"      • {risk['condition']}: {risk['score']}/100 ({risk['level']})")
+            logger.info(f"      • {risk['condition']}: {risk['score']}/100 ({risk['level']}) - {risk['reason']}")
 
         return validated if validated else _default_risk(symptoms)
 

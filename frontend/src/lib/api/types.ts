@@ -34,6 +34,8 @@ export interface UserProfile {
   email: string;
   full_name: string;
   role: string;
+  specialization?: string;
+  clinic?: string;
   created_at?: string;
 }
 
@@ -46,6 +48,13 @@ export interface OAuthURLResponse {
   url: string;
 }
 
+export interface ProfileUpdateRequest {
+  full_name?: string;
+  role?: string;
+  specialization?: string;
+  clinic?: string;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // PATIENT TYPES
 // ═══════════════════════════════════════════════════════════════
@@ -54,6 +63,14 @@ export interface RiskScore {
   condition: string;
   score: number;
   level?: "Low" | "Medium" | "High" | "Critical";
+  reason?: string;
+}
+
+export interface AISummary {
+  clinical_summary_en: string;
+  clinical_summary_ur: string;
+  patient_friendly_summary: string;
+  suggested_actions: string[];
 }
 
 export interface Vitals {
@@ -92,7 +109,7 @@ export interface PatientResponse {
   history?: string[];
   medical_history?: string;
   risk_scores?: RiskScore[];
-  ai_summary?: string;
+  ai_summary?: AISummary;
   treatment_plan?: string;
   vitals?: Vitals;
   medications?: Medication[];
@@ -127,6 +144,9 @@ export interface PrescriptionResponse {
   date: string;
   medications: PrescriptionMedication[];
   status: "Pending" | "Digitized" | "Verified";
+  extracted_patient_name?: string;
+  extracted_age?: number;
+  extracted_gender?: string;
   image_url?: string;
   created_at?: string;
 }

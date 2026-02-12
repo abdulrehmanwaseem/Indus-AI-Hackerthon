@@ -27,13 +27,6 @@ const urgencyColors: Record<string, string> = {
   Low: "bg-emerald-500 text-white dark:text-white",
 };
 
-const riskColors: Record<string, string> = {
-  Critical: "text-destructive",
-  High: "text-orange-500",
-  Medium: "text-amber-500",
-  Low: "text-emerald-500",
-};
-
 // Helper function to get urgency level from score
 const getUrgencyLevel = (score: number): string => {
   if (score >= 80) return "Critical";
@@ -82,7 +75,7 @@ export function PatientSummary() {
       } catch (err) {
         console.error("Failed to fetch patient:", err);
         setError(
-          err instanceof Error ? err.message : "Failed to load patient data",
+          err instanceof Error ? err.message : "Failed to load patient data"
         );
       } finally {
         setIsLoading(false);
@@ -94,7 +87,7 @@ export function PatientSummary() {
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="p-6">
         <Button
           variant="ghost"
           size="sm"
@@ -131,7 +124,7 @@ export function PatientSummary() {
 
   if (error || !patient) {
     return (
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="p-6">
         <Link to="/dashboard">
           <Button variant="ghost" size="sm" className="gap-1.5 mb-4 -ml-2">
             <IconArrowLeft size={16} /> Back to Dashboard
@@ -157,7 +150,7 @@ export function PatientSummary() {
   const urgencyLevel = getUrgencyLevel(patient.urgency_score);
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6">
       {/* Back Button */}
       <Link to="/dashboard">
         <Button variant="ghost" size="sm" className="gap-1.5 mb-4 -ml-2">
@@ -201,79 +194,109 @@ export function PatientSummary() {
       </motion.div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* AI Summary */}
+        {/* AI Insight Center */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          className="space-y-6"
         >
-          <Card className="p-6 border-border/60 h-full">
-            <h2 className="font-semibold flex items-center gap-2 mb-4">
-              <IconBrain size={18} className="text-primary" />
-              AI-Generated Treatment Plan
-            </h2>
-            <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
-              <p className="text-sm leading-relaxed text-foreground">
-                {patient.treatment_plan || "AI analysis pending..."}
-              </p>
+          <Card className="p-6 border-border/60">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-semibold flex items-center gap-2">
+                <IconBrain size={18} className="text-primary" />
+                AI Health Insights
+              </h2>
+              <div className="flex bg-slate-100 p-1 rounded-lg gap-1">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="text-[10px] h-7 px-3 bg-white shadow-sm font-bold"
+                >
+                  English
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="text-[10px] h-7 px-3 opacity-50 font-bold"
+                >
+                  اردو
+                </Button>
+              </div>
             </div>
-            <Separator className="my-4" />
-            <div>
-              <h3 className="text-sm font-medium mb-2">Symptoms Reported</h3>
-              <p className="text-sm text-muted-foreground">
-                {patient.symptoms}
-              </p>
+
+            {/* Bilingual Summaries */}
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+                <p className="text-sm leading-relaxed text-navy font-medium italic">
+                  "
+                  {patient.ai_summary?.clinical_summary_en ||
+                    "AI analysis is being processed..."}
+                  "
+                </p>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 hidden">
+                <p className="text-sm leading-relaxed text-navy text-right font-urdu">
+                  {patient.ai_summary?.clinical_summary_ur}
+                </p>
+              </div>
             </div>
-            <Separator className="my-4" />
+
+            <Separator className="my-6" />
+
+            {/* Suggested Actions */}
             <div>
-              <h3 className="text-sm font-medium mb-2">Medical History</h3>
-              <div className="flex flex-wrap gap-2">
-                {patient.medical_history ? (
-                  patient.medical_history.split(",").map((h) => (
-                    <Badge
-                      key={h.trim()}
-                      variant="secondary"
-                      className="text-xs"
-                    >
-                      {h.trim()}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-sm text-muted-foreground">
-                    No medical history recorded
-                  </span>
+              <h3 className="text-sm font-bold text-navy mb-3 flex items-center gap-2 uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                Next Steps (AI Recommended)
+              </h3>
+              <div className="grid gap-2">
+                {patient.ai_summary?.suggested_actions?.map((action, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 text-navy border border-slate-100 group hover:border-primary/20 transition-all"
+                  >
+                    <span className="w-6 h-6 rounded-lg bg-white flex items-center justify-center text-[10px] font-bold border border-slate-200 group-hover:border-primary/30 transition-all">
+                      {i + 1}
+                    </span>
+                    <span className="text-xs font-medium">{action}</span>
+                  </div>
+                )) || (
+                  <p className="text-xs text-slate-400">
+                    No actions recommended yet.
+                  </p>
                 )}
               </div>
             </div>
-            <Separator className="my-4" />
-            <div>
-              <h3 className="text-sm font-medium mb-2">Vitals</h3>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <span className="text-muted-foreground">
-                  Blood Pressure:{" "}
-                  <span className="text-foreground">
-                    {patient.vitals?.blood_pressure || "N/A"}
-                  </span>
+          </Card>
+
+          {/* Symptoms & History (Moved below) */}
+          <Card className="p-6 border-border/60">
+            <h3 className="text-sm font-bold text-navy mb-3">
+              Symptoms Reported
+            </h3>
+            <p className="text-sm text-slate-600 leading-relaxed mb-6">
+              {patient.symptoms}
+            </p>
+            <h3 className="text-sm font-bold text-navy mb-3">
+              Medical History
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {patient.medical_history ? (
+                patient.medical_history.split(",").map((h) => (
+                  <Badge
+                    key={h}
+                    variant="secondary"
+                    className="bg-slate-100 text-slate-600 border-none font-medium"
+                  >
+                    {h.trim()}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-xs text-slate-400 italic">
+                  No history provided
                 </span>
-                <span className="text-muted-foreground">
-                  Heart Rate:{" "}
-                  <span className="text-foreground">
-                    {patient.vitals?.heart_rate || "N/A"} bpm
-                  </span>
-                </span>
-                <span className="text-muted-foreground">
-                  Temperature:{" "}
-                  <span className="text-foreground">
-                    {patient.vitals?.temperature || "N/A"}°F
-                  </span>
-                </span>
-                <span className="text-muted-foreground">
-                  O₂ Sat:{" "}
-                  <span className="text-foreground">
-                    {patient.vitals?.oxygen_saturation || "N/A"}%
-                  </span>
-                </span>
-              </div>
+              )}
             </div>
           </Card>
         </motion.div>
@@ -300,23 +323,20 @@ export function PatientSummary() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.3 + i * 0.1 }}
                     >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-sm font-medium">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-navy">
                           {risk.condition}
                         </span>
-                        <span
-                          className={`text-sm font-bold ${riskColors[riskLevel]}`}
+                        <Badge
+                          className={`text-[10px] px-2 h-5 rounded-full ${urgencyColors[riskLevel]}`}
                         >
-                          {risk.score}%
-                        </span>
+                          {risk.score}% Risk
+                        </Badge>
                       </div>
-                      <Progress value={risk.score} className="h-2" />
-                      <p
-                        className={`text-xs mt-1 font-medium ${
-                          riskColors[riskLevel]
-                        }`}
-                      >
-                        {riskLevel} Risk
+                      <Progress value={risk.score} className="h-1.5 mb-2" />
+                      <p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        {risk.reason ||
+                          "AI detected this pattern based on symptoms and demographics."}
                       </p>
                     </motion.div>
                   );

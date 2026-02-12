@@ -22,6 +22,9 @@ class PrescriptionResponse(BaseModel):
     date: str
     medications: list[Medication]
     status: str  # Pending | Digitized | Verified
+    extracted_patient_name: Optional[str] = None
+    extracted_age: Optional[int] = None
+    extracted_gender: Optional[str] = None
     image_url: Optional[str] = None
     created_at: Optional[str] = None
 

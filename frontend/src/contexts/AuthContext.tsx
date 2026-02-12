@@ -13,11 +13,13 @@ import {
   getCurrentUser,
   getGoogleOAuthUrl,
   isAuthenticated as checkIsAuthenticated,
+  updateProfile as apiUpdateProfile,
   tokenManager,
   getErrorMessage,
   type UserProfile,
   type LoginRequest,
   type RegisterRequest,
+  type ProfileUpdateRequest,
 } from "@/lib/api";
 
 // ─────────────────────────────────────────────────────────────
@@ -35,8 +37,9 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   handleOAuthCallback: (
     accessToken: string,
-    refreshToken: string,
+    refreshToken: string
   ) => Promise<UserProfile>;
+  updateProfile: (data: ProfileUpdateRequest) => Promise<void>;
   clearError: () => void;
 }
 
@@ -137,8 +140,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     },
-    [],
+    []
   );
+
+  const updateProfile = useCallback(async (data: ProfileUpdateRequest) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const updatedUser = await apiUpdateProfile(data);
+      setUser(updatedUser);
+    } catch (err) {
+      const message = getErrorMessage(err);
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -154,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     loginWithGoogle,
     handleOAuthCallback,
+    updateProfile,
     clearError,
   };
 

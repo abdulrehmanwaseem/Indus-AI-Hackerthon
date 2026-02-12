@@ -30,7 +30,7 @@ export function PrescriptionDigitizer() {
   const [currentPrescription, setCurrentPrescription] =
     useState<PrescriptionResponse | null>(null);
   const [prescriptions, setPrescriptions] = useState<PrescriptionResponse[]>(
-    [],
+    []
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +69,7 @@ export function PrescriptionDigitizer() {
       // Upload and digitize the prescription
       const prescription = await uploadPrescription(
         file,
-        patientName || "Unknown Patient",
+        patientName || "Unknown Patient"
       );
 
       setCurrentPrescription(prescription);
@@ -80,7 +80,7 @@ export function PrescriptionDigitizer() {
     } catch (err) {
       console.error("Failed to digitize prescription:", err);
       setError(
-        err instanceof Error ? err.message : "Failed to digitize prescription",
+        err instanceof Error ? err.message : "Failed to digitize prescription"
       );
     } finally {
       setScanning(false);
@@ -98,8 +98,8 @@ export function PrescriptionDigitizer() {
         prev.map((p) =>
           p.id === currentPrescription.id
             ? { ...p, status: "Verified" as const }
-            : p,
-        ),
+            : p
+        )
       );
       setCurrentPrescription({ ...currentPrescription, status: "Verified" });
     } catch (err) {
@@ -119,8 +119,8 @@ export function PrescriptionDigitizer() {
         prev.map((p) =>
           p.id === currentPrescription.id
             ? { ...p, status: "Pending" as const }
-            : p,
-        ),
+            : p
+        )
       );
       // Reset the form
       setFile(null);
@@ -148,7 +148,7 @@ export function PrescriptionDigitizer() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}

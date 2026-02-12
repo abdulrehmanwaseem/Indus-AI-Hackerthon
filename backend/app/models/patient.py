@@ -8,6 +8,14 @@ class RiskScore(BaseModel):
     condition: str
     score: int  # 0-100
     level: str  # Low | Medium | High | Critical
+    reason: Optional[str] = None
+
+
+class AISummary(BaseModel):
+    clinical_summary_en: str
+    clinical_summary_ur: str
+    patient_friendly_summary: str
+    suggested_actions: list[str]
 
 
 # ── Requests ──────────────────────────────────────────
@@ -32,7 +40,7 @@ class PatientResponse(BaseModel):
     avatar: str
     history: list[str]
     risk_scores: list[RiskScore]
-    ai_summary: str
+    ai_summary: Optional[AISummary] = None
     created_at: Optional[str] = None
 
     class Config:
