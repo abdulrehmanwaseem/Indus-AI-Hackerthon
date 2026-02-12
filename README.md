@@ -2,6 +2,8 @@
 
 Tandarust AI is a comprehensive healthcare application designed to assist medical professionals with patient triage, prescription digitization, and health risk assessment using advanced AI technologies.
 
+<img width="1900" height="869" alt="image" src="https://github.com/user-attachments/assets/8d9b10d9-fef1-4b7f-bff7-893321bb4703" />
+
 ## 🚀 Key Features
 
 - **AI-Powered Triage**: Automatically prioritizes patients based on urgency scores (0-100) and clinical reasoning using Google Gemini.
