@@ -1,0 +1,81 @@
+"""
+Shared dependency providers for FastAPI.
+- Supabase clients (public + service-role)
+- Gemini generative model
+- Auth dependency (token verification)
+"""
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from supabase import create_client, Client
+import google.generativeai as genai
+
+from app.config import Settings, get_settings
+
+# ── Security scheme ───────────────────────────────────
+security = HTTPBearer()
+
+
+# ── Supabase clients ─────────────────────────────────
+def get_supabase(settings: Settings = Depends(get_settings)) -> Client:
+    """Public Supabase client (uses anon key, respects RLS)."""
+    return create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+
+
+def get_supabase_admin(settings: Settings = Depends(get_settings)) -> Client:
+    """Service-role Supabase client (bypasses RLS – use with care)."""
+    return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+
+
+# ── Gemini model ──────────────────────────────────────
+def get_gemini_model(settings: Settings = Depends(get_settings)):
+    """Returns a configured Gemini 2.5 Flash model instance."""
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+    return genai.GenerativeModel("gemini-2.5-flash")
+
+
+# ── Auth dependency ───────────────────────────────────
+import time
+from typing import Dict, Tuple
+
+# Simple TTL cache for user profiles to reduce Supabase auth calls
+# token -> (user_obj, expiry_timestamp)
+_auth_cache: Dict[str, Tuple[any, float]] = {}
+AUTH_CACHE_TTL = 30  # seconds
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    supabase: Client = Depends(get_supabase_admin),
+):
+    """
+    Verify the Bearer token via Supabase and return the user object.
+    Uses a short-lived in-memory cache to deduplicate redundant auth checks.
+    """
+    token = credentials.credentials
+    
+    # Check cache first
+    now = time.time()
+    if token in _auth_cache:
+        user, expiry = _auth_cache[token]
+        if now < expiry:
+            return user
+        else:
+            del _auth_cache[token]
+
+    try:
+        user_response = supabase.auth.get_user(token)
+        if user_response and user_response.user:
+            # Cache the successful result
+            _auth_cache[token] = (user_response.user, now + AUTH_CACHE_TTL)
+            return user_response.user
+            
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+    except Exception as e:
+        # Don't cache failures
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Authentication failed: {str(e)}",
+        )
