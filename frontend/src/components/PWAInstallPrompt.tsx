@@ -162,13 +162,13 @@ export function PWAInstallPrompt() {
               </div>
               <button
                 onClick={dismiss}
-                className="text-white/40 hover:text-white transition-colors"
+                className="text-white/50 hover:text-white z-10 transition-colors"
               >
                 <IconX size={18} />
               </button>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
               <Button
                 onClick={handleInstallClick}
                 className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold h-10 rounded-xl text-xs gap-2"
@@ -176,9 +176,9 @@ export function PWAInstallPrompt() {
                 <IconDownload size={16} /> Install Now
               </Button>
               <Button
-                variant="ghost"
+                variant="secondary"
+                className="h-9.5 px-3 rounded-xl text-xs font-bold"
                 onClick={dismiss}
-                className="text-white/60 hover:text-white hover:bg-white/5 text-xs font-medium"
               >
                 Later
               </Button>

@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     # ── App ──
     APP_NAME: str = "Tandarust AI"
     DEBUG: bool = False
+    RENDER_EXTERNAL_URL: str = "" # Set in Render dashboard to e.g. https://yourapp.onrender.com
 
     model_config = {
         "env_file": ".env",

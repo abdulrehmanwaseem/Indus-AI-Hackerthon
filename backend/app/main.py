@@ -13,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.routers import auth, patients, prescriptions, dashboard
+from app.services.keep_alive import start_keep_alive
+import asyncio
 
 # ── Logging ───────────────────────────────────────────
 logging.basicConfig(
@@ -21,12 +23,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 # ── Lifespan (startup / shutdown) ─────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info(f"🚀 {settings.APP_NAME} backend starting...")
+    
+    # Start the keep-alive background task if RENDER_EXTERNAL_URL is set
+    asyncio.create_task(start_keep_alive())
+    
     logger.info(f"   Supabase URL : {settings.SUPABASE_URL}")
     logger.info(f"   CORS origin  : {settings.FRONTEND_URL}")
     logger.info(f"   Debug mode   : {settings.DEBUG}")
