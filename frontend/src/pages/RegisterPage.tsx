@@ -6,15 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-
-const HERO_IMG = "/hero.jpg";
-const AVATARS = [
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuAThH8ZlSEQ3ij-ciG6WBPo_-6E8bLfaJIJ9iudYpn7vwrILktXElieHVx8U-F-rvE_-EzSZmNQay6GkvrtGm36M3_oq97rEsx8e9P5h0K06fQKjP-JEie7ms-aiwq_zdBypP9zFbKq9JPsycjiopYAAh8tXIll3hA1l-v-eCv1jgqfXDsmMfmwA9Gfcmw6sabOh2-kscDIYaG2LLHDnDyrBHJB1YvcLycz6oqLAfMwS9eUgUucKVl2UHdgXARIS42I1qCAUt8FPScu",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDdDnPDwxrVY6qJRPG_nl0Lrl-hYBcw87qf5C-YdOaertpZyIEcaNo-H0q_dAQRoQeoSQFixkd_FyJS9y8hjLpkE3kDcUpHpYrNQG3ID6oue4z26KFd7-XVKplmzVc-wCX4ubDHTnB84VJy1HP8hSc0LxLr2hvFru8fozvJV1dF4WXkSsfB0gPL0u_1nwDDblHResA2t7XVCPNMaa8InIFzqzFIQWjBhf6-LXTiCTDdg2QxZsI6SiYPScvCfqdxoeXegUQgiZ3sdGon",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDJPB5QDWmuFzKI9KWJEqrtmqRWTQol_TWwp7QvQXPb2E4rTuNPPnQ8tYXeRNSizRuGYWkIywxlGxjPf0bhb5j6MZBBBagI9AISVpokJvtNptDKl3EDWDPclTO3NuBTe3_XItpE0upBwuKBpIomrg4_Wq-uCEaFtL_8YwepITx9GQz-J3eEHlzFAPNagVesF7mmALX_Mr0MQAKgunrtY_5pPTZ08bzI0-OOhR_viVf_3yZyQdfnOJFQKAeEF-wEmwdDN6BWgwQZowHV",
-];
-
-const GOOGLE_ICON = "/google-icon.png";
+import { ASSETS } from "@/lib/assets";
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -65,8 +57,8 @@ export function RegisterPage() {
           <div className="mb-8">
             <img
               alt="Doctor with AI assistant"
-              className="rounded-2xl shadow-2xl border border-white/10 w-full  h-80 aspect-video object-cover"
-              src={HERO_IMG}
+              className="rounded-2xl shadow-2xl border border-white/10 w-full h-80 aspect-video object-cover"
+              src={ASSETS.IMAGES.HERO}
             />
           </div>
 
@@ -81,7 +73,7 @@ export function RegisterPage() {
           {/* Social proof */}
           <div className="mt-12 flex items-center gap-4">
             <div className="flex -space-x-3">
-              {AVATARS.map((src, i) => (
+              {ASSETS.IMAGES.SOCIAL_AVATARS.map((src, i) => (
                 <img
                   key={i}
                   alt="User"
@@ -90,7 +82,7 @@ export function RegisterPage() {
                 />
               ))}
             </div>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-400">
               Joined by 500+ medical professionals
             </p>
           </div>
@@ -111,7 +103,7 @@ export function RegisterPage() {
             className="lg:hidden flex items-center justify-center gap-2 mb-8 hover:opacity-80 transition-opacity"
           >
             <img
-              src="/brand-logo.png"
+              src={ASSETS.IMAGES.BRAND_LOGO}
               alt="Tandarust AI"
               className="h-10 w-auto"
             />
@@ -267,7 +259,11 @@ export function RegisterPage() {
               disabled={isLoading}
               className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl transition-all shadow-sm disabled:opacity-50"
             >
-              <img alt="Google" className="w-5 h-5" src={GOOGLE_ICON} />
+              <img
+                alt="Google"
+                className="w-5 h-5"
+                src={ASSETS.IMAGES.GOOGLE_ICON}
+              />
               Sign up with Google
             </button>
 
