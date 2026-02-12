@@ -23,6 +23,11 @@ class Settings(BaseSettings):
         "env_file_encoding": "utf-8",
     }
 
+    @property
+    def cleaned_frontend_url(self) -> str:
+        """Strips whitespace and trailing slashes from the frontend URL."""
+        return self.FRONTEND_URL.strip().rstrip("/")
+
 
 @lru_cache()
 def get_settings() -> Settings:

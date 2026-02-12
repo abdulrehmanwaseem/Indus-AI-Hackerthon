@@ -190,7 +190,7 @@ async def google_oauth(
             {
                 "provider": "google",
                 "options": {
-                    "redirect_to": f"{settings.FRONTEND_URL}/auth/callback",
+                    "redirect_to": f"{settings.cleaned_frontend_url}/auth/callback",
                 },
             }
         )

@@ -51,10 +51,9 @@ settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        settings.FRONTEND_URL,
+        settings.cleaned_frontend_url,
         "http://localhost:5173",
         "http://localhost:3000",
-        "https://involuntary-despiteously-adelyn.ngrok-free.dev"
     ],
     allow_credentials=True,
     allow_methods=["*"],
