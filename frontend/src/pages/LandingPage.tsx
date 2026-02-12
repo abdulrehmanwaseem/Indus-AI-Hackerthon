@@ -18,8 +18,7 @@ const AVATARS = [
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDJPB5QDWmuFzKI9KWJEqrtmqRWTQol_TWwp7QvQXPb2E4rTuNPPnQ8tYXeRNSizRuGYWkIywxlGxjPf0bhb5j6MZBBBagI9AISVpokJvtNptDKl3EDWDPclTO3NuBTe3_XItpE0upBwuKBpIomrg4_Wq-uCEaFtL_8YwepITx9GQz-J3eEHlzFAPNagVesF7mmALX_Mr0MQAKgunrtY_5pPTZ08bzI0-OOhR_viVf_3yZyQdfnOJFQKAeEF-wEmwdDN6BWgwQZowHV",
 ];
 
-const HERO_IMG =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuBqCu_S6GeNTj4nSKDycQMBr5i9UGHn5f3beVmvvEjoC8d5eGgmizCa6HRh8pERtRz-xmsmbbdm3EJcitWiOXfZ0aqC_wGZ0oghygKEOr5o-inThdDjwKzCoM5-E9XSFyAKFZBSyxrS57I8lwMUY8K3EdYCtfB9qzNf-84dtw55l-JE47A6Y8jp3Mm1yZF8hH1o37ixAvthfdM6jtG_PC-gxlpVfly1WSqQbzfpTw0FKkqFfTlZO0Er08xXNzZAqdY4z_wIs-rXr6bo";
+const HERO_IMG = "/landing-hero.png";
 
 const CLINICS_IMG =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuDAbIirFqjtHXcOu6MquUcl_zF8OY-mF-Ehhl0FbZQi_gES7dObUJz3LZWNvSJL0DdvrvNhONFYRTr50jqAyzvcmedA-uJ33hPE0XWot24avwEfEaW2sK6j_BGY4MstupSk3ZkY1wPa1XPGoCQLhU8Em-0fLFiZRuGML_YAUxmB20kVSO7PazHyaR_Amicopw5b8lz-oM2jLgQEXfX5fmOF010xBdkfb9Z3HVFho02iJfZ4Zz1DCILdcTjXpw-kaOFRDQDF4GwlJ8Zg";
@@ -40,7 +39,7 @@ const features = [
     title: "Patient Hub",
     description:
       "A unified 360° view of patient health journeys, from first visit to long-term recovery metrics.",
-    offset: true,
+    offset: false,
   },
   {
     icon: IconChartBar,
@@ -54,7 +53,7 @@ const features = [
     title: "Vault Security",
     description:
       "Military-grade encryption and HIPAA compliance baked into every byte of data transmitted.",
-    offset: true,
+    offset: false,
   },
 ];
 
@@ -94,7 +93,7 @@ export function LandingPage() {
                 How it Works
               </a>
               <Link to="/register">
-                <Button className="bg-navy hover:bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-md">
+                <Button className="bg-navy h-10 hover:bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-md">
                   Get Started
                 </Button>
               </Link>
@@ -327,7 +326,7 @@ export function LandingPage() {
               </ul>
               <img
                 alt="Clinics"
-                className="w-full h-fit object-cover rounded-2xl mt-auto"
+                className="w-full h-108 object-cover rounded-2xl mt-auto"
                 src={CLINICS_IMG}
               />
             </motion.div>
@@ -378,7 +377,7 @@ export function LandingPage() {
               </ul>
               <img
                 alt="Patients"
-                className="w-full h-fit object-cover rounded-2xl mt-auto"
+                className="w-full h-108 object-cover rounded-2xl mt-auto"
                 src={PATIENTS_IMG}
               />
             </motion.div>
@@ -418,7 +417,7 @@ export function LandingPage() {
                   <Button
                     variant="ghost"
                     size="lg"
-                    className="bg-white/10 border border-white/20 text-white hover:bg-white/50 px-12 py-5 rounded-2xl font-bold text-lg h-auto"
+                    className="bg-white/10 border border-white/20 text-white hover:bg-white/20 px-12 py-5 rounded-2xl font-bold text-lg h-auto hover:text-white"
                   >
                     Schedule Demo
                   </Button>

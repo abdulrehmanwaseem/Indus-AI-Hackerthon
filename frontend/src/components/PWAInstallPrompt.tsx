@@ -26,11 +26,11 @@ export function PWAInstallPrompt() {
     const iosDevice = /ipad|iphone|ipod/.test(userAgent);
     const androidDevice = /android/.test(userAgent);
     const isStandalone = window.matchMedia(
-      "(display-mode: standalone)",
+      "(display-mode: standalone)"
     ).matches;
 
     console.log(
-      `PWAInstallPrompt: iOS=${iosDevice}, Android=${androidDevice}, Standalone=${isStandalone}`,
+      `PWAInstallPrompt: iOS=${iosDevice}, Android=${androidDevice}, Standalone=${isStandalone}`
     );
 
     setIsIOS(iosDevice);

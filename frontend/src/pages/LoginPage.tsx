@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 
-const HERO_IMG = "/hero.jpg";
+const HERO_IMG = "/landing-hero.png";
 
 const AVATARS = [
   "https://lh3.googleusercontent.com/aida-public/AB6AXuAThH8ZlSEQ3ij-ciG6WBPo_-6E8bLfaJIJ9iudYpn7vwrILktXElieHVx8U-F-rvE_-EzSZmNQay6GkvrtGm36M3_oq97rEsx8e9P5h0K06fQKjP-JEie7ms-aiwq_zdBypP9zFbKq9JPsycjiopYAAh8tXIll3hA1l-v-eCv1jgqfXDsmMfmwA9Gfcmw6sabOh2-kscDIYaG2LLHDnDyrBHJB1YvcLycz6oqLAfMwS9eUgUucKVl2UHdgXARIS42I1qCAUt8FPScu",
@@ -66,7 +66,7 @@ export function LoginPage() {
           <div className="mb-8">
             <img
               alt="Doctor with AI assistant"
-              className="rounded-2xl shadow-2xl border border-white/10 w-full aspect-video object-cover"
+              className="rounded-2xl shadow-2xl border border-white/10 w-full h-80 aspect-video object-cover"
               src={HERO_IMG}
             />
           </div>

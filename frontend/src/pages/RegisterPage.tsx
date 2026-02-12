@@ -65,7 +65,7 @@ export function RegisterPage() {
           <div className="mb-8">
             <img
               alt="Doctor with AI assistant"
-              className="rounded-2xl shadow-2xl border border-white/10 w-full aspect-video object-cover"
+              className="rounded-2xl shadow-2xl border border-white/10 w-full  h-80 aspect-video object-cover"
               src={HERO_IMG}
             />
           </div>
