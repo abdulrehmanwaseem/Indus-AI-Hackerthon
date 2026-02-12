@@ -16,72 +16,121 @@ export function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     console.log("PWAInstallPrompt: Hook registered");
 
-    // Check if we are on iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    // Check device info
+    const userAgent = navigator.userAgent.toLowerCase();
+    const iosDevice = /ipad|iphone|ipod/.test(userAgent);
+    const androidDevice = /android/.test(userAgent);
     const isStandalone = window.matchMedia(
       "(display-mode: standalone)",
     ).matches;
+
+    console.log(
+      `PWAInstallPrompt: iOS=${iosDevice}, Android=${androidDevice}, Standalone=${isStandalone}`,
+    );
+
+    setIsIOS(iosDevice);
+
+    // Don't show if already in standalone mode
+    if (isStandalone) {
+      console.log("PWAInstallPrompt: Already installed, hiding prompt");
+      return;
+    }
 
     // Force show for testing if ?pwa-test=true is in URL
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("pwa-test") === "true") {
       console.log("PWAInstallPrompt: Test mode enabled via URL");
-      // Use a timeout to avoid synchronous setState inside useEffect warning
-      setTimeout(() => setIsVisible(true), 0);
+      setTimeout(() => {
+        setIsVisible(true);
+      }, 500);
     }
 
     const handler = (e: Event) => {
       console.log("PWAInstallPrompt: beforeinstallprompt event fired!");
-      // Prevent the default browser prompt
       e.preventDefault();
-      // Stash the event so it can be triggered later.
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Show our custom banner
-      setIsVisible(true);
+      // Delay showing to ensure DOM is ready
+      setTimeout(() => {
+        setIsVisible(true);
+      }, 500);
     };
 
+    // Listen on window
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Debugging: If app is already installed
-    window.addEventListener("appinstalled", () => {
+    // Also listen on document for broader coverage
+    document.addEventListener("beforeinstallprompt", handler);
+
+    // Handle app installed event
+    const installedHandler = () => {
       console.log("PWAInstallPrompt: App was installed successfully");
       setIsVisible(false);
-    });
+      setDeferredPrompt(null);
+    };
 
-    // iOS Safari Handling (manual instructions)
-    if (isIOS && !isStandalone) {
-      console.log(
-        "PWAInstallPrompt: iOS Safari detected. You might want to show manual instructions here.",
-      );
+    window.addEventListener("appinstalled", installedHandler);
+
+    // For Android, show prompt after a delay if not received
+    if (androidDevice && !iosDevice) {
+      const timeout = setTimeout(() => {
+        if (!deferredPrompt) {
+          console.log("PWAInstallPrompt: Manual install prompt (Android)");
+          setIsVisible(true);
+        }
+      }, 3000);
+
+      return () => {
+        clearTimeout(timeout);
+        window.removeEventListener("beforeinstallprompt", handler);
+        document.removeEventListener("beforeinstallprompt", handler);
+        window.removeEventListener("appinstalled", installedHandler);
+      };
     }
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
+      document.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", installedHandler);
     };
-  }, []);
+  }, [deferredPrompt]);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      console.warn("PWAInstallPrompt: No deferred prompt available");
+      return;
+    }
 
-    // Show the install prompt
-    await deferredPrompt.prompt();
+    try {
+      // Show the install prompt
+      await deferredPrompt.prompt();
 
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to the install prompt: ${outcome}`);
+      // Wait for the user to respond to the prompt
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to the install prompt: ${outcome}`);
 
-    // We've used the prompt, and can't use it again, throw it away
-    setDeferredPrompt(null);
-    setIsVisible(false);
+      // We've used the prompt, and can't use it again, throw it away
+      setDeferredPrompt(null);
+      setIsVisible(false);
+    } catch (error) {
+      console.error("PWAInstallPrompt: Error during install:", error);
+    }
   };
 
   const dismiss = () => {
     setIsVisible(false);
+    // Optionally hide for session to avoid annoyance
+    sessionStorage.setItem("pwa_prompt_dismissed", "true");
   };
+
+  // Don't show if dismissed this session
+  if (sessionStorage.getItem("pwa_prompt_dismissed") === "true") {
+    return null;
+  }
 
   return (
     <AnimatePresence>

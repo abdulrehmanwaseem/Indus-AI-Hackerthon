@@ -28,28 +28,32 @@ async def register(
 ):
     """Register a new user with email, password, name, and role."""
     try:
-        # Sign up via Supabase Auth — metadata is stored and used by the trigger
-        result = supabase.auth.sign_up(
-            {
-                "email": body.email,
-                "password": body.password,
-                "options": {
-                    "data": {
-                        "full_name": body.full_name,
-                        "role": body.role,
-                    }
-                },
+        # Use admin.create_user to bypass email rate limits and auto-confirm
+        # This is especially useful during hackathons/development when many test accounts are created
+        admin_result = supabase.auth.admin.create_user({
+            "email": body.email,
+            "password": body.password,
+            "email_confirm": True,
+            "user_metadata": {
+                "full_name": body.full_name,
+                "role": body.role,
             }
-        )
+        })
 
-        if not result.user:
+        if not admin_result.user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Registration failed. User may already exist.",
             )
 
-        session = result.session
-        user = result.user
+        user = admin_result.user
+
+        # Since admin.create_user doesn't return a session, we sign in manually
+        # to get the access and refresh tokens for the frontend
+        login_result = supabase.auth.sign_in_with_password(
+            {"email": body.email, "password": body.password}
+        )
+        session = login_result.session
 
         return AuthResponse(
             user=UserProfile(

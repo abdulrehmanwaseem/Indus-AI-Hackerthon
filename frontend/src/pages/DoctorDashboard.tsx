@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDashboardStats, getPatients } from "@/lib/api";
 import type { DashboardStats, PatientResponse } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 const urgencyColors: Record<string, string> = {
   Critical: "bg-destructive/70 text-destructive-foreground",
@@ -35,9 +36,9 @@ const urgencyBorder: Record<string, string> = {
   Low: "border-l-emerald-500",
 };
 
-const getStatsConfig = (stats: DashboardStats | null) => [
+const getStatsConfig = (stats: DashboardStats | null, t: any) => [
   {
-    label: "Total Patients",
+    label: t("total_patients"),
     value: stats?.total_patients ?? 0,
     icon: IconUsers,
     color: "text-primary",
@@ -46,7 +47,7 @@ const getStatsConfig = (stats: DashboardStats | null) => [
     trendUp: true,
   },
   {
-    label: "Critical Cases",
+    label: t("critical_cases"),
     value: stats?.critical_patients ?? 0,
     icon: IconUrgent,
     color: "text-destructive",
@@ -55,7 +56,7 @@ const getStatsConfig = (stats: DashboardStats | null) => [
     trendUp: true,
   },
   {
-    label: "Pending Reviews",
+    label: t("pending_reviews"),
     value: stats?.pending_reviews ?? 0,
     icon: IconFileText,
     color: "text-chart-1",
@@ -64,7 +65,7 @@ const getStatsConfig = (stats: DashboardStats | null) => [
     trendUp: false,
   },
   {
-    label: "Avg Wait Time",
+    label: t("avg_wait_time"),
     value: stats?.avg_wait_time ?? "0 min",
     icon: IconClock,
     color: "text-chart-3",
@@ -93,6 +94,7 @@ const getInitials = (name: string): string => {
 };
 
 export function DoctorDashboard() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [patients, setPatients] = useState<PatientResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -124,7 +126,7 @@ export function DoctorDashboard() {
     fetchData();
   }, []);
 
-  const statsConfig = getStatsConfig(stats);
+  const statsConfig = getStatsConfig(stats, t);
 
   if (isLoading) {
     return (
@@ -132,7 +134,7 @@ export function DoctorDashboard() {
         <div className="flex items-center justify-center py-4">
           <IconLoader2 className="animate-spin text-primary" size={32} />
           <span className="ml-2 text-muted-foreground">
-            Loading dashboard...
+            {t("loading", "Loading dashboard...")}
           </span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -188,14 +190,14 @@ export function DoctorDashboard() {
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Doctor Dashboard</h1>
+            <h1 className="text-2xl font-bold">{t("doctor_dashboard")}</h1>
             <p className="text-sm text-muted-foreground">
-              Real-time patient queue and AI insights
+              {t("real_time_queue")}
             </p>
           </div>
           <Link to="/patient-input">
             <Button className="gap-2">
-              <IconUsers size={16} /> New Patient
+              <IconUsers size={16} /> {t("new_patient")}
             </Button>
           </Link>
         </div>
@@ -247,10 +249,10 @@ export function DoctorDashboard() {
             <div className="p-4 border-b border-border/60 flex items-center justify-between">
               <h2 className="font-semibold flex items-center gap-2">
                 <IconUsers size={18} className="text-primary" />
-                Patient Queue
+                {t("patient_queue")}
               </h2>
               <Badge variant="secondary" className="text-xs">
-                {patients.length} patients
+                {patients.length} {t("patients")}
               </Badge>
             </div>
             <div className="divide-y divide-border/40">
@@ -335,7 +337,7 @@ export function DoctorDashboard() {
             <div className="p-4 border-b border-border/60">
               <h2 className="font-semibold flex items-center gap-2">
                 <IconAlertTriangle size={18} className="text-destructive" />
-                Risk Alerts
+                {t("high_risk_alerts")}
               </h2>
             </div>
             <div className="divide-y divide-border/40">
@@ -386,7 +388,7 @@ export function DoctorDashboard() {
 
           {/* Quick Actions */}
           <Card className="p-4 border-border/60">
-            <h3 className="font-semibold text-sm mb-3">Quick Actions</h3>
+            <h3 className="font-semibold text-sm mb-3">{t("quick_actions")}</h3>
             <div className="space-y-2">
               <Link to="/patient-input">
                 <Button
@@ -394,7 +396,7 @@ export function DoctorDashboard() {
                   size="sm"
                   className="w-full justify-start gap-2"
                 >
-                  <IconUsers size={14} /> Add Patient
+                  <IconUsers size={14} /> {t("new_patient")}
                 </Button>
               </Link>
               <Link to="/prescriptions">
@@ -403,7 +405,7 @@ export function DoctorDashboard() {
                   size="sm"
                   className="w-full justify-start gap-2"
                 >
-                  <IconFileText size={14} /> Scan Prescription
+                  <IconFileText size={14} /> {t("scan_prescription")}
                 </Button>
               </Link>
             </div>

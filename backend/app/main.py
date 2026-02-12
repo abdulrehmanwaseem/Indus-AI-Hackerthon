@@ -54,6 +54,7 @@ app.add_middleware(
         settings.FRONTEND_URL,
         "http://localhost:5173",
         "http://localhost:3000",
+        "https://involuntary-despiteously-adelyn.ngrok-free.dev"
     ],
     allow_credentials=True,
     allow_methods=["*"],

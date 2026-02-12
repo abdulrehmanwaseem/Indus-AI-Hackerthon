@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { tokenManager, getCurrentUser } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 // ─────────────────────────────────────────────────────────────
@@ -10,48 +9,39 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export function AuthCallback() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
-  const {} = useAuth(); // Force re-render on auth change
+  const { handleOAuthCallback } = useAuth();
 
   useEffect(() => {
-    const handleCallback = async () => {
+    const processCallback = async () => {
       try {
         // Get tokens from URL hash (Supabase sends them in hash fragment)
         const hashParams = new URLSearchParams(
           window.location.hash.substring(1),
         );
-        const accessToken =
-          hashParams.get("access_token") || searchParams.get("access_token");
-        const refreshToken =
-          hashParams.get("refresh_token") || searchParams.get("refresh_token");
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
 
         if (accessToken && refreshToken) {
-          // Store tokens
-          tokenManager.setTokens(accessToken, refreshToken);
-
-          // Verify tokens work by fetching user
-          await getCurrentUser();
+          // Store tokens and update auth context
+          await handleOAuthCallback(accessToken, refreshToken);
 
           // Redirect to dashboard
           navigate("/dashboard", { replace: true });
         } else {
           // Check for error
           const errorDesc =
-            hashParams.get("error_description") ||
-            searchParams.get("error_description") ||
-            "Authentication failed";
+            hashParams.get("error_description") || "Authentication failed";
           setError(errorDesc);
         }
       } catch (err) {
         console.error("OAuth callback error:", err);
         setError("Failed to complete authentication");
-        tokenManager.clearTokens();
       }
     };
 
-    handleCallback();
-  }, [navigate, searchParams]);
+    processCallback();
+  }, [navigate, handleOAuthCallback]);
 
   if (error) {
     return (

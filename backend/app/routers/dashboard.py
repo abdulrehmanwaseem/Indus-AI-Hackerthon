@@ -5,7 +5,7 @@ Dashboard Router — Aggregate stats for the doctor dashboard.
 from fastapi import APIRouter, Depends
 from supabase import Client
 
-from app.dependencies import get_supabase_admin, get_current_user
+from app.dependencies import get_supabase_admin, get_current_user, role_required
 from app.models.dashboard import DashboardStats
 from app.services import dashboard_service
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 @router.get("/stats", response_model=DashboardStats)
 async def get_stats(
-    current_user=Depends(get_current_user),
+    current_user=Depends(role_required(["doctor", "admin"])),
     supabase: Client = Depends(get_supabase_admin),
 ):
     """

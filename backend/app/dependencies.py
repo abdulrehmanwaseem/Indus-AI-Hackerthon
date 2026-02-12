@@ -36,11 +36,11 @@ def get_gemini_model(settings: Settings = Depends(get_settings)):
 
 # ── Auth dependency ───────────────────────────────────
 import time
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List, Any
 
 # Simple TTL cache for user profiles to reduce Supabase auth calls
 # token -> (user_obj, expiry_timestamp)
-_auth_cache: Dict[str, Tuple[any, float]] = {}
+_auth_cache: Dict[str, Tuple[Any, float]] = {}
 AUTH_CACHE_TTL = 30  # seconds
 
 async def get_current_user(
@@ -79,3 +79,39 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Authentication failed: {str(e)}",
         )
+
+
+def role_required(allowed_roles: List[str]):
+    """
+    Dependency to restrict access based on user roles.
+    Checks user metadata first, then falls back to the 'profiles' table.
+    """
+    async def role_checker(
+        current_user: Any = Depends(get_current_user),
+        supabase: Client = Depends(get_supabase_admin),
+    ):
+        # 1. Check user metadata (injected during registration/login)
+        role = None
+        if current_user.user_metadata:
+            role = current_user.user_metadata.get("role")
+        
+        # 2. Fallback: Check profiles table if metadata is missing/stale
+        if not role:
+            try:
+                res = supabase.table("profiles").select("role").eq("id", str(current_user.id)).single().execute()
+                if res.data:
+                    role = res.data.get("role")
+            except Exception:
+                pass
+        
+        # 3. Default to patient
+        role = role or "patient"
+            
+        if role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Role '{role}' not in {allowed_roles}",
+            )
+        return current_user
+        
+    return role_checker

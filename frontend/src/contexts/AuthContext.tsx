@@ -33,6 +33,10 @@ interface AuthContextType {
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
   loginWithGoogle: () => Promise<void>;
+  handleOAuthCallback: (
+    accessToken: string,
+    refreshToken: string,
+  ) => Promise<UserProfile>;
   clearError: () => void;
 }
 
@@ -115,6 +119,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const handleOAuthCallback = useCallback(
+    async (accessToken: string, refreshToken: string): Promise<UserProfile> => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        tokenManager.setTokens(accessToken, refreshToken);
+        const userData = await getCurrentUser();
+        setUser(userData);
+        return userData;
+      } catch (err) {
+        const message = getErrorMessage(err);
+        setError(message);
+        tokenManager.clearTokens();
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -128,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     loginWithGoogle,
+    handleOAuthCallback,
     clearError,
   };
 

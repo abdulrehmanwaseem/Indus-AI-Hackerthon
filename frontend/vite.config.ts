@@ -61,10 +61,12 @@ export default defineConfig({
           },
         ],
       },
+      workbox: {
+        navigateFallback: "index.html",
+        navigateFallbackAllowlist: [/^\/(?!api\/).*/],
+      },
       devOptions: {
-        enabled: true,
-        suppressWarnings: true,
-        type: "module",
+        enabled: false,
       },
     }),
   ],

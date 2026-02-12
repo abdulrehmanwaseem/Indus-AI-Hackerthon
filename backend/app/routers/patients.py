@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from supabase import Client
 from google.generativeai import GenerativeModel
 
-from app.dependencies import get_supabase_admin, get_current_user, get_gemini_model
+from app.dependencies import get_supabase_admin, get_current_user, get_gemini_model, role_required
 from app.models.patient import PatientCreateRequest, PatientResponse, PatientListResponse
 from app.services import patient_service
 from app.agents.prioritization import assess_patient_priority
@@ -153,7 +153,7 @@ async def create_patient(
 async def list_patients(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
-    current_user=Depends(get_current_user),
+    current_user=Depends(role_required(["doctor", "admin"])),
     supabase: Client = Depends(get_supabase_admin),
 ):
     """List all patients sorted by urgency (highest first)."""
@@ -178,7 +178,7 @@ async def get_patient(
 @router.delete("/{patient_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_patient(
     patient_id: str,
-    current_user=Depends(get_current_user),
+    current_user=Depends(role_required(["doctor", "admin"])),
     supabase: Client = Depends(get_supabase_admin),
 ):
     """Delete a patient record."""

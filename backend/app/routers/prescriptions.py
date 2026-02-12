@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile
 from supabase import Client
 from google.generativeai import GenerativeModel
 
-from app.dependencies import get_supabase_admin, get_current_user, get_gemini_model
+from app.dependencies import get_supabase_admin, get_current_user, get_gemini_model, role_required
 from app.models.prescription import (
     PrescriptionResponse,
     PrescriptionListResponse,
@@ -38,7 +38,7 @@ async def digitize_and_create(
     file: UploadFile = File(...),
     patient_name: str = Form(...),
     patient_id: str = Form(default=None),
-    current_user=Depends(get_current_user),
+    current_user=Depends(role_required(["doctor", "admin"])),
     supabase: Client = Depends(get_supabase_admin),
     gemini: GenerativeModel = Depends(get_gemini_model),
 ):
@@ -108,7 +108,7 @@ async def digitize_and_create(
 async def list_prescriptions(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
-    current_user=Depends(get_current_user),
+    current_user=Depends(role_required(["doctor", "admin"])),
     supabase: Client = Depends(get_supabase_admin),
 ):
     """List all prescriptions sorted by date (newest first)."""
@@ -134,7 +134,7 @@ async def get_prescription(
 async def update_status(
     prescription_id: str,
     body: PrescriptionStatusUpdate,
-    current_user=Depends(get_current_user),
+    current_user=Depends(role_required(["doctor", "admin"])),
     supabase: Client = Depends(get_supabase_admin),
 ):
     """Update prescription status (Pending → Digitized → Verified)."""

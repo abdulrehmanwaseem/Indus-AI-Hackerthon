@@ -23,16 +23,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 
 const navItems = [
-  { label: "Dashboard", path: "/dashboard", icon: IconLayoutDashboard },
-  { label: "Patient Input", path: "/patient-input", icon: IconHeartbeat },
-  { label: "Prescriptions", path: "/prescriptions", icon: IconFileText },
-  { label: "Settings", path: "/settings", icon: IconSettings },
-  { label: "About", path: "/about", icon: IconInfoCircle },
+  { labelKey: "dashboard", path: "/dashboard", icon: IconLayoutDashboard },
+  { labelKey: "patients", path: "/patient-input", icon: IconHeartbeat },
+  { labelKey: "prescriptions", path: "/prescriptions", icon: IconFileText },
+  { labelKey: "settings", path: "/settings", icon: IconSettings },
+  { labelKey: "about", path: "/about", icon: IconInfoCircle },
 ];
 
 export function Layout() {
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const location = useLocation();
@@ -116,7 +118,7 @@ export function Layout() {
                             : "text-muted-foreground group-hover:text-accent-foreground"
                         }`}
                       />
-                      {item.label}
+                      {t(item.labelKey)}
                       {isActive && (
                         <motion.div
                           layoutId="activeTab"
@@ -126,7 +128,7 @@ export function Layout() {
                     </Link>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    <p>{item.label}</p>
+                    <p>{t(item.labelKey)}</p>
                   </TooltipContent>
                 </Tooltip>
               );

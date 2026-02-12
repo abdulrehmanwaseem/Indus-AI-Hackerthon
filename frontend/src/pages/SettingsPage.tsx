@@ -16,22 +16,24 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useTranslation } from "react-i18next";
 
 type SettingsTab = "profile" | "notifications" | "appearance" | "language";
 
-const tabs: { key: SettingsTab; label: string; icon: React.ElementType }[] = [
-  { key: "profile", label: "Profile", icon: IconUser },
-  { key: "notifications", label: "Notifications", icon: IconBell },
-  { key: "appearance", label: "Appearance", icon: IconPalette },
-  { key: "language", label: "Language", icon: IconLanguage },
-];
+const tabs: { key: SettingsTab; labelKey: string; icon: React.ElementType }[] =
+  [
+    { key: "profile", labelKey: "profile", icon: IconUser },
+    { key: "notifications", labelKey: "notifications", icon: IconBell },
+    { key: "appearance", labelKey: "appearance", icon: IconPalette },
+    { key: "language", labelKey: "language", icon: IconLanguage },
+  ];
 
 export function SettingsPage() {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [darkMode, setDarkMode] = useState(
     document.documentElement.classList.contains("dark"),
   );
-  const [language, setLanguage] = useState<"en" | "ur">("en");
   const [notifications, setNotifications] = useState({
     criticalAlerts: true,
     newPatients: true,
@@ -44,15 +46,21 @@ export function SettingsPage() {
     document.documentElement.classList.toggle("dark");
   };
 
+  const handleLanguageChange = (lng: "en" | "ur") => {
+    i18n.changeLanguage(lng);
+    document.documentElement.dir = lng === "ur" ? "rtl" : "ltr";
+    document.documentElement.lang = lng;
+  };
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-2xl font-bold mb-1">Settings</h1>
+        <h1 className="text-2xl font-bold mb-1">{t("settings")}</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          Manage your account and preferences
+          {t("manage_preferences", "Manage your account and preferences")}
         </p>
       </motion.div>
 
@@ -120,12 +128,12 @@ export function SettingsPage() {
                     <Input id="specialization" defaultValue="Cardiology" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="clinic">Clinic</Label>
+                    <Label htmlFor="clinic">{t("clinic", "Clinic")}</Label>
                     <Input id="clinic" defaultValue="City Heart Clinic" />
                   </div>
                 </div>
                 <Button className="mt-6 gap-2">
-                  <IconDeviceFloppy size={16} /> Save Changes
+                  <IconDeviceFloppy size={16} /> {t("save_changes")}
                 </Button>
               </Card>
             </motion.div>
@@ -222,21 +230,21 @@ export function SettingsPage() {
               animate={{ opacity: 1, x: 0 }}
             >
               <Card className="p-6 border-border/60">
-                <h2 className="font-semibold text-lg mb-6">Language</h2>
+                <h2 className="font-semibold text-lg mb-6">{t("language")}</h2>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {[
                     {
                       code: "en" as const,
-                      label: "English",
+                      label: t("english"),
                       native: "English",
                     },
-                    { code: "ur" as const, label: "Urdu", native: "اردو" },
+                    { code: "ur" as const, label: t("urdu"), native: "اردو" },
                   ].map((lang) => (
                     <button
                       key={lang.code}
-                      onClick={() => setLanguage(lang.code)}
+                      onClick={() => handleLanguageChange(lang.code)}
                       className={`p-4 rounded-xl border text-left transition-all ${
-                        language === lang.code
+                        i18n.language === lang.code
                           ? "border-primary bg-primary/5"
                           : "border-border hover:border-primary/30 hover:bg-muted/50"
                       }`}

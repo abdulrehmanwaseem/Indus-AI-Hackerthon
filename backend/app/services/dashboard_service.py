@@ -10,32 +10,30 @@ logger = logging.getLogger(__name__)
 
 
 async def get_dashboard_stats(supabase: Client) -> dict:
-    """Compute aggregate dashboard statistics from the database with optimized queries."""
+    """Compute aggregate dashboard statistics using optimized database counts and minimal data transfer."""
     try:
-        # Group 1: All patient-related metrics in one query
-        # We fetch relevant fields for all patients to compute counts and averages in-memory
-        patients_res = supabase.table("patients").select("urgency_level, wait_time, risk_scores").execute()
-        patients_data = patients_res.data or []
+        # Group 1: Efficient counts using PostgREST (no row data transferred)
+        total_res = supabase.table("patients").select("id", count="exact").limit(1).execute()
+        critical_res = supabase.table("patients").select("id", count="exact").eq("urgency_level", "Critical").limit(1).execute()
+        pending_res = supabase.table("prescriptions").select("id", count="exact").eq("status", "Pending").limit(1).execute()
         
-        total_patients = len(patients_data)
-        critical_patients = sum(1 for p in patients_data if p.get("urgency_level") == "Critical")
+        today = date.today().isoformat()
+        today_rx_res = supabase.table("prescriptions").select("id", count="exact").eq("date", today).limit(1).execute()
+
+        # Group 2: Fetch only necessary fields for complex aggregations
+        # This is still faster than fetching all columns (*)
+        calc_res = supabase.table("patients").select("wait_time, risk_scores").execute()
+        patients_data = calc_res.data or []
+        
         avg_wait = _compute_avg_wait(patients_data)
         risk_alerts = _count_high_risk(patients_data)
 
-        # Group 2: All prescription-related metrics in one query
-        today = date.today().isoformat()
-        prescriptions_res = supabase.table("prescriptions").select("status, date").execute()
-        prescriptions_data = prescriptions_res.data or []
-        
-        pending_reviews = sum(1 for p in prescriptions_data if p.get("status") == "Pending")
-        prescriptions_today = sum(1 for p in prescriptions_data if p.get("date") == today)
-
         return {
-            "total_patients": total_patients,
-            "critical_patients": critical_patients,
-            "pending_reviews": pending_reviews,
+            "total_patients": total_res.count or 0,
+            "critical_patients": critical_res.count or 0,
+            "pending_reviews": pending_res.count or 0,
             "avg_wait_time": avg_wait,
-            "prescriptions_today": prescriptions_today,
+            "prescriptions_today": today_rx_res.count or 0,
             "risk_alerts": risk_alerts,
         }
 
