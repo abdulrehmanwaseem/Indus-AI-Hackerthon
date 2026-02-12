@@ -6,12 +6,12 @@ const inputSvg = "public/logo.svg";
 const outputDir = "public";
 
 const sizes = [
-  { size: 192, name: "pwa-192x192.png" },
-  { size: 512, name: "pwa-512x512.png" },
+  { size: 192, name: "logo-pwa-192x192.png" },
+  { size: 512, name: "logo-pwa-512x512.png" },
 ];
 
 const maskableSize = 512;
-const maskableName = "maskable-icon-512x512.png";
+const maskableName = "logo-maskable-icon-512x512.png";
 
 async function generateIcons() {
   try {
