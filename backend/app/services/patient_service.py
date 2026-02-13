@@ -4,10 +4,36 @@ Patient Service — CRUD operations via Supabase.
 
 import logging
 import json
-import logging
+import asyncio
+import httpx
 from supabase import Client
 
 logger = logging.getLogger(__name__)
+
+def retry_db_operation(max_retries: int = 2, delay: float = 1.0):
+    """
+    Decorator to retry database operations on transient connection errors (getaddrinfo, ConnectError).
+    """
+    def decorator(func):
+        async def wrapper(*args, **kwargs):
+            last_err = None
+            for attempt in range(max_retries + 1):
+                try:
+                    return await func(*args, **kwargs)
+                except (httpx.ConnectError, httpx.RequestError) as e:
+                    last_err = e
+                    err_msg = str(e).lower()
+                    if "getaddrinfo" in err_msg or "connection" in err_msg:
+                        if attempt < max_retries:
+                            logger.warning(f"⚠️  Database connection glitch (attempt {attempt+1}/{max_retries+1}). Retrying in {delay}s...")
+                            await asyncio.sleep(delay)
+                            continue
+                    raise
+                except Exception:
+                    raise
+            raise last_err
+        return wrapper
+    return decorator
 
 
 def _table_missing(e: Exception) -> bool:
@@ -16,6 +42,7 @@ def _table_missing(e: Exception) -> bool:
     return "pgrst205" in error_str or "could not find the table" in error_str
 
 
+@retry_db_operation(max_retries=2, delay=1.0)
 async def create_patient(supabase: Client, patient_data: dict, user_id: str = None) -> dict:
     """Insert a new patient record and return the created row."""
     # Serialize AI summary dict to JSON string for storage in TEXT column
@@ -49,6 +76,7 @@ async def create_patient(supabase: Client, patient_data: dict, user_id: str = No
         raise
 
 
+@retry_db_operation(max_retries=2, delay=1.0)
 async def get_patients(
     supabase: Client, limit: int = 50, offset: int = 0
 ) -> tuple[list[dict], int]:
@@ -70,6 +98,7 @@ async def get_patients(
         raise
 
 
+@retry_db_operation(max_retries=2, delay=1.0)
 async def get_patient_by_id(supabase: Client, patient_id: str) -> dict | None:
     """Fetch a single patient by ID."""
     try:
@@ -88,6 +117,7 @@ async def get_patient_by_id(supabase: Client, patient_id: str) -> dict | None:
         raise
 
 
+@retry_db_operation(max_retries=2, delay=1.0)
 async def delete_patient(supabase: Client, patient_id: str) -> bool:
     """Delete a patient record. Returns True if successful."""
     try:

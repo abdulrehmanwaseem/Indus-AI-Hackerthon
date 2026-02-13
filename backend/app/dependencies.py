@@ -19,12 +19,14 @@ security = HTTPBearer()
 # ── Supabase clients ─────────────────────────────────
 def get_supabase(settings: Settings = Depends(get_settings)) -> Client:
     """Public Supabase client (uses anon key, respects RLS)."""
-    return create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+    url = settings.SUPABASE_URL.strip().rstrip("/")
+    return create_client(url, settings.SUPABASE_KEY)
 
 
 def get_supabase_admin(settings: Settings = Depends(get_settings)) -> Client:
     """Service-role Supabase client (bypasses RLS – use with care)."""
-    return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+    url = settings.SUPABASE_URL.strip().rstrip("/")
+    return create_client(url, settings.SUPABASE_SERVICE_ROLE_KEY)
 
 
 # ── Gemini model ──────────────────────────────────────
