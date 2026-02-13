@@ -1,67 +1,94 @@
-"""
-Voice Transcription Agent
-─────────────────────────
-Transcribes medical symptom audio using Google Gemini 2.0 Flash.
-Natively supports multimodal audio input.
-"""
-
+import json
 import logging
 from google.generativeai import GenerativeModel
 
 logger = logging.getLogger(__name__)
 
-VOICE_TRANSCRIPTION_PROMPT = """You are a medical transcriptionist for Tandarust AI.
+VOICE_EXTRACTION_PROMPT = """You are a medical intake AI for Tandarust AI.
 
 **Task:**
 1. Listen to the provided audio of a doctor or patient describing symptoms.
-2. Transcribe exactly what is said.
-3. If the audio refers to medications, medical history, or vitals, include them.
-4. Correct minor grammatical errors but keep the medical terminology accurate.
+2. Transcribe exactly what is said as a "raw_transcription".
+3. Extract the following structured data if mentioned:
+   - "name": Full name of the patient.
+   - "age": Age of the patient as an integer.
+   - "gender": Gender (Male/Female/Other).
+   - "symptoms": A concise clinical summary of the symptoms described.
 
-**Output:**
-Return a clean, professional written summary of the symptoms described. No preamble, no "Here is the transcription", just the result.
+**Output Format:**
+Respond with ONLY valid JSON. No preamble, no markdown code fences.
+{
+    "name": "extracted name or null",
+    "age": "extracted age or null",
+    "gender": "extracted gender or null",
+    "symptoms": "extracted clinical symptoms",
+    "raw_transcription": "the full word-for-word transcription"
+}
 """
 
 async def transcribe_audio(
     model: GenerativeModel,
     audio_bytes: bytes,
     content_type: str = "audio/wav",
-) -> str:
+) -> dict:
     """
-    Send audio bytes to Gemini for transcription.
+    Send audio bytes to Gemini for structured extraction.
+    Returns a dict with extracted patient data.
     """
-    logger.info(f"   Model: Gemini 2.0 Flash (Audio)")
-    # Normalize MIME Type: Strip codecs like ';codecs=opus' as Gemini inline_data is picky
+    logger.info(f"   Model: Gemini (Audio + Structured Extraction)")
+    # Normalize MIME Type
     normalized_type = content_type.split(";")[0].strip()
     
     try:
-        # Prepare the audio for Gemini
+        # Prepare the audio part
         audio_part = {
             "mime_type": normalized_type,
             "data": audio_bytes
         }
 
-        # Send multimodal request with a hyper-focused prompt
+        # Send multimodal request
         response = model.generate_content([
-            "TRANSCRIPTION TASK: Listen to this audio and write down everything said. If it's a doctor describing a patient, summarize the symptoms. If there is no speech, just say 'No audible speech detected'. DO NOT give a preamble.",
+            VOICE_EXTRACTION_PROMPT,
             audio_part
         ])
         
-        transcription = response.text.strip()
-        logger.debug(f"🎙️ RAW TRANSCRIPTION RESPONSE: {transcription}")
+        raw_text = response.text.strip()
+        logger.debug(f"🎙️ RAW AI RESPONSE: {raw_text}")
 
-        if not transcription or "No audible speech" in transcription:
-            logger.warning("   ⚠️ No speech detected by AI")
-            return "No audible speech detected. Please speak clearly and try again."
+        # Clean potential markdown code fences
+        if raw_text.startswith("```"):
+            raw_text = raw_text.split("\n", 1)[1] if "\n" in raw_text else raw_text[3:]
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3]
+        raw_text = raw_text.strip()
 
-        logger.info(f"   ✅ SUCCESS - Transcription complete ({len(transcription)} chars)")
-        return transcription
+        try:
+            result = json.loads(raw_text)
+        except json.JSONDecodeError:
+            logger.warning("   ⚠️ AI returned invalid JSON. Falling back to raw transcription.")
+            return {
+                "name": None,
+                "age": None,
+                "gender": None,
+                "symptoms": raw_text,
+                "raw_transcription": raw_text
+            }
+
+        # Ensure all keys exist
+        return {
+            "name": result.get("name"),
+            "age": result.get("age"),
+            "gender": result.get("gender"),
+            "symptoms": result.get("symptoms", result.get("raw_transcription", "No symptoms extracted")),
+            "raw_transcription": result.get("raw_transcription", "")
+        }
 
     except Exception as e:
-        error_msg = str(e)
-        if "429" in error_msg or "quota" in error_msg.lower():
-            logger.error(f"⚠️ QUOTA EXCEEDED: {error_msg}")
-            return "AI Quota Exceeded. Please wait a few minutes or try again later today."
-        
-        logger.error(f"Voice transcription agent error: {e}")
-        return f"Transcription failed: {error_msg}"
+        logger.error(f"Voice extraction agent error: {e}")
+        return {
+            "name": None,
+            "age": None,
+            "gender": None,
+            "symptoms": f"Extraction failed: {str(e)}",
+            "raw_transcription": ""
+        }

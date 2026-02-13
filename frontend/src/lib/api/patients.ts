@@ -4,6 +4,7 @@ import type {
   PatientResponse,
   PatientListResponse,
   PaginationParams,
+  VoiceTranscriptionResponse,
 } from "./types";
 
 // ─────────────────────────────────────────────────────────────
@@ -55,13 +56,15 @@ export async function deletePatient(patientId: string): Promise<void> {
 }
 
 /**
- * Transcribe patient symptoms from audio file
+ * Transcribe and extract patient data from audio file
  */
-export async function transcribeVoice(audioBlob: Blob): Promise<string> {
+export async function transcribeVoice(
+  audioBlob: Blob
+): Promise<VoiceTranscriptionResponse> {
   const formData = new FormData();
   formData.append("file", audioBlob, "recording.wav");
 
-  const response = await apiClient.post<{ transcription: string }>(
+  const response = await apiClient.post<VoiceTranscriptionResponse>(
     "/patients/transcribe-voice",
     formData,
     {
@@ -70,5 +73,5 @@ export async function transcribeVoice(audioBlob: Blob): Promise<string> {
       },
     }
   );
-  return response.data.transcription;
+  return response.data;
 }

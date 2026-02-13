@@ -2,6 +2,7 @@
 Patient Router — CRUD + AI triage pipeline.
 """
 
+import json
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from supabase import Client
 from google.generativeai import GenerativeModel
@@ -34,13 +35,13 @@ async def transcribe_voice(
         )
     
     audio_bytes = await file.read()
-    transcription = await transcribe_audio(
+    result = await transcribe_audio(
         model=gemini,
         audio_bytes=audio_bytes,
         content_type=file.content_type
     )
     
-    return {"transcription": transcription}
+    return result
 
 
 def _make_avatar(name: str) -> str:
@@ -53,7 +54,6 @@ def _make_avatar(name: str) -> str:
 
 def _format_patient(row: dict) -> PatientResponse:
     """Convert a DB row dict to a PatientResponse."""
-    import json
     
     summary = row.get("ai_summary", "")
     # Handle if ai_summary is stored as a JSON string or a dict

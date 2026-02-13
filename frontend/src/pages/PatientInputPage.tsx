@@ -223,13 +223,26 @@ export function PatientInputPage() {
   const handleTranscription = async (blob: Blob) => {
     try {
       setIsTranscribing(true);
-      const text = await transcribeVoice(blob);
-      if (text) {
+      const result = await transcribeVoice(blob);
+
+      if (result) {
+        // Auto-fill extracted fields
+        if (result.name) setName(result.name);
+        if (result.age) setAge(result.age.toString());
+        if (result.gender) setGender(result.gender);
+
+        // Update symptoms with extracted summary and raw transcription context
+        const symptomsText = result.symptoms;
+        const rawContent = `\n\nVoice Summary: ${result.raw_transcription}`;
+
         setSymptoms((prev) =>
-          prev ? `${prev}\n\nVoice Summary: ${text}` : text
+          prev
+            ? `${prev}\n\n${symptomsText}${rawContent}`
+            : `${symptomsText}${rawContent}`
         );
-        toast.success("Voice transcribed successfully!");
-        setActiveTab("text");
+
+        toast.success("Voice intelligence: Form updated with patient details!");
+        setActiveTab("text"); // Switch back to text to review the auto-filled data
       }
     } catch (err) {
       console.error("Transcription failed:", err);
@@ -490,23 +503,25 @@ export function PatientInputPage() {
                   )}
                 </AnimatePresence>
 
-                <motion.button
-                  onClick={toggleRecording}
-                  disabled={isTranscribing}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all z-20 ${
-                    recording
-                      ? "bg-destructive text-destructive-foreground shadow-xl shadow-destructive/40"
-                      : "bg-primary text-primary-foreground hover:shadow-xl hover:shadow-primary/40"
-                  } ${isTranscribing ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {recording ? (
-                    <IconPlayerStop size={40} />
-                  ) : (
-                    <IconMicrophone size={40} />
-                  )}
-                </motion.button>
+                {!isTranscribing && (
+                  <motion.button
+                    onClick={toggleRecording}
+                    disabled={isTranscribing}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all z-20 ${
+                      recording
+                        ? "bg-destructive text-destructive-foreground shadow-xl shadow-destructive/40"
+                        : "bg-primary text-primary-foreground hover:shadow-xl hover:shadow-primary/40"
+                    } ${isTranscribing ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    {recording ? (
+                      <IconPlayerStop size={40} />
+                    ) : (
+                      <IconMicrophone size={40} />
+                    )}
+                  </motion.button>
+                )}
               </div>
 
               <div className="h-12 flex flex-col items-center justify-center gap-2">

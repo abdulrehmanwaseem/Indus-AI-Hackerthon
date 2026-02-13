@@ -33,7 +33,6 @@ async def create_patient(supabase: Client, patient_data: dict, user_id: str = No
         "wait_time": patient_data["wait_time"],
         "avatar": patient_data.get("avatar", ""),
         "history": patient_data.get("history", []),
-        "medical_history": patient_data.get("medical_history", ""),
         "risk_scores": patient_data.get("risk_scores", []),
         "ai_summary": ai_summary,
     }

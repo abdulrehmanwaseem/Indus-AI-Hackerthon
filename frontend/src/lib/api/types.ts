@@ -186,3 +186,11 @@ export interface PaginationParams {
   limit?: number;
   offset?: number;
 }
+
+export interface VoiceTranscriptionResponse {
+  name: string | null;
+  age: number | null;
+  gender: string | null;
+  symptoms: string;
+  raw_transcription: string;
+}
