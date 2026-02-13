@@ -25,6 +25,7 @@ class PatientCreateRequest(BaseModel):
     gender: str  # Male | Female | Other
     symptoms: str
     history: list[str] = []
+    medical_history: Optional[str] = None
 
 
 # ── Responses ─────────────────────────────────────────

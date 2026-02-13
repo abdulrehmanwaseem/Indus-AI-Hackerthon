@@ -122,6 +122,9 @@ export function PatientInputPage() {
         gender: gender as "Male" | "Female" | "Other",
         symptoms: symptoms.trim(),
         medical_history: medicalHistory.trim() || undefined,
+        history: medicalHistory.trim()
+          ? medicalHistory.split(",").map((h) => h.trim())
+          : undefined,
         vitals: {
           blood_pressure: bloodPressure || "120/80",
           heart_rate: heartRate ? parseInt(heartRate, 10) : 72,

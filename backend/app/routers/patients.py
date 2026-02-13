@@ -109,7 +109,15 @@ async def create_patient(
     logger.info(f"═══════════════════════════════════════════════════════════")
     logger.info(f"📋 CREATE PATIENT REQUEST")
     logger.info(f"   Patient: {body.name}, Age: {body.age}")
+    if body.medical_history:
+        logger.info(f"   Medical History (raw): {body.medical_history}")
     logger.info(f"═══════════════════════════════════════════════════════════")
+    
+    # ── Handle History Conversion ──
+    # If frontend sends medical_history as string and history is empty, convert it
+    history = body.history
+    if not history and body.medical_history:
+        history = [h.strip() for h in body.medical_history.split(",") if h.strip()]
     
     try:
         # ── Step 1: Prioritization ──
@@ -120,7 +128,7 @@ async def create_patient(
             age=body.age,
             gender=body.gender,
             symptoms=body.symptoms,
-            history=body.history,
+            history=history,
         )
         logger.info(f"   ✅ Priority result: {priority}")
 
@@ -131,7 +139,7 @@ async def create_patient(
             age=body.age,
             gender=body.gender,
             symptoms=body.symptoms,
-            history=body.history,
+            history=history,
         )
         logger.info(f"   ✅ Risk scores ({len(risk_scores)} conditions): {risk_scores}")
 
@@ -143,12 +151,12 @@ async def create_patient(
             age=body.age,
             gender=body.gender,
             symptoms=body.symptoms,
-            history=body.history,
+            history=history,
             urgency_score=priority["urgency_score"],
             urgency_level=priority["urgency_level"],
             risk_scores=risk_scores,
         )
-        logger.info(f"   ✅ Summary generated: {ai_summary[:100]}...")
+        logger.info(f"   ✅ Summary generated: {json.dumps(ai_summary)[:100]}...")
 
         # ── Step 4: Build full patient data ──
         logger.info(f"\n4️⃣  STEP 4: BUILD PATIENT DATA")
@@ -157,7 +165,8 @@ async def create_patient(
             "age": body.age,
             "gender": body.gender,
             "symptoms": body.symptoms,
-            "history": body.history,
+            "history": history,
+            "medical_history": body.medical_history, 
             "avatar": _make_avatar(body.name),
             "urgency_score": priority["urgency_score"],
             "urgency_level": priority["urgency_level"],

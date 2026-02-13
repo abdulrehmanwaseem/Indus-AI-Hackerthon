@@ -93,6 +93,7 @@ export interface PatientCreateRequest {
   gender: "Male" | "Female" | "Other";
   symptoms: string;
   medical_history?: string;
+  history?: string[];
   vitals?: Vitals;
 }
 

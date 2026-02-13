@@ -3,6 +3,8 @@ Patient Service — CRUD operations via Supabase.
 """
 
 import logging
+import json
+import logging
 from supabase import Client
 
 logger = logging.getLogger(__name__)
@@ -16,6 +18,11 @@ def _table_missing(e: Exception) -> bool:
 
 async def create_patient(supabase: Client, patient_data: dict, user_id: str = None) -> dict:
     """Insert a new patient record and return the created row."""
+    # Serialize AI summary dict to JSON string for storage in TEXT column
+    ai_summary = patient_data.get("ai_summary", "")
+    if isinstance(ai_summary, dict):
+        ai_summary = json.dumps(ai_summary)
+
     payload = {
         "name": patient_data["name"],
         "age": patient_data["age"],
@@ -26,8 +33,9 @@ async def create_patient(supabase: Client, patient_data: dict, user_id: str = No
         "wait_time": patient_data["wait_time"],
         "avatar": patient_data.get("avatar", ""),
         "history": patient_data.get("history", []),
+        "medical_history": patient_data.get("medical_history", ""),
         "risk_scores": patient_data.get("risk_scores", []),
-        "ai_summary": patient_data.get("ai_summary", ""),
+        "ai_summary": ai_summary,
     }
     if user_id:
         payload["created_by"] = user_id

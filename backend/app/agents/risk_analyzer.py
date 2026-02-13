@@ -130,5 +130,6 @@ def _default_risk(symptoms: str) -> list[dict]:
             "condition": "General Health Assessment",
             "score": 30,
             "level": "Low",
+            "reason": "Default risk assessment due to AI unavailability."
         }
     ]

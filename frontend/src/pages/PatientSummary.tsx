@@ -282,14 +282,14 @@ export function PatientSummary() {
               Medical History
             </h3>
             <div className="flex flex-wrap gap-2">
-              {patient.medical_history ? (
-                patient.medical_history.split(",").map((h) => (
+              {patient.history && patient.history.length > 0 ? (
+                patient.history.map((h) => (
                   <Badge
                     key={h}
                     variant="secondary"
                     className="bg-slate-100 text-slate-600 border-none font-medium"
                   >
-                    {h.trim()}
+                    {h}
                   </Badge>
                 ))
               ) : (
