@@ -135,10 +135,22 @@ export function PrescriptionDigitizer() {
   const resetForm = () => {
     setFile(null);
     setUploaded(false);
+    setScanning(false);
     setScanned(false);
     setCurrentPrescription(null);
     setError(null);
     setPatientName("");
+  };
+
+  const handleSelectRecent = (rx: PrescriptionResponse) => {
+    setCurrentPrescription(rx);
+    setScanned(true);
+    setUploaded(true);
+    // Don't set file since we are viewing an existing one
+    setFile(null);
+    setError(null);
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const statusColors: Record<string, string> = {
@@ -214,26 +226,38 @@ export function PrescriptionDigitizer() {
               ) : (
                 <div className="space-y-4">
                   {/* File info display */}
-                  <div className="rounded-xl bg-muted/50 border border-border/60 p-6 min-h-[200px] flex flex-col items-center justify-center">
-                    <IconPhoto size={48} className="text-primary mb-4" />
-                    <p className="font-medium text-center">{file?.name}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {file && (file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                    {patientName && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Patient: {patientName}
-                      </p>
+                  <div className="rounded-xl border border-border/60 overflow-hidden min-h-[300px] flex flex-col relative group">
+                    {currentPrescription?.image_url ? (
+                      <img
+                        src={currentPrescription.image_url}
+                        alt="Prescription"
+                        className="w-full h-[400px] object-contain bg-black/5"
+                      />
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center p-6 bg-muted/30">
+                        <IconPhoto size={48} className="text-primary mb-4" />
+                        <p className="font-medium text-center">
+                          {file?.name || "Image available in list below"}
+                        </p>
+                        {file && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        )}
+                      </div>
                     )}
+
                     {!scanned && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-4"
-                        onClick={resetForm}
-                      >
-                        <IconX size={14} className="mr-1" /> Change File
-                      </Button>
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-8 w-8 rounded-full shadow-lg"
+                          onClick={resetForm}
+                        >
+                          <IconX size={14} />
+                        </Button>
+                      </div>
                     )}
                   </div>
 
@@ -392,6 +416,17 @@ export function PrescriptionDigitizer() {
                       </Button>
                     </div>
                   )}
+
+                  {currentPrescription.status === "Verified" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 mt-2"
+                      onClick={resetForm}
+                    >
+                      <IconScan size={16} /> New Scan
+                    </Button>
+                  )}
                 </motion.div>
               )}
             </div>
@@ -425,13 +460,28 @@ export function PrescriptionDigitizer() {
               {prescriptions.map((rx) => (
                 <div
                   key={rx.id}
-                  className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+                  className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${
+                    currentPrescription?.id === rx.id
+                      ? "bg-primary/5 border-l-2 border-primary"
+                      : "hover:bg-muted/30"
+                  }`}
+                  onClick={() => handleSelectRecent(rx)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-muted/50 flex items-center justify-center">
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                        currentPrescription?.id === rx.id
+                          ? "bg-primary/10"
+                          : "bg-muted/50"
+                      }`}
+                    >
                       <IconFileText
                         size={16}
-                        className="text-muted-foreground"
+                        className={
+                          currentPrescription?.id === rx.id
+                            ? "text-primary"
+                            : "text-muted-foreground"
+                        }
                       />
                     </div>
                     <div>

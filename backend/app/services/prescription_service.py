@@ -4,12 +4,40 @@ Prescription Service — CRUD + image storage via Supabase.
 
 import logging
 import uuid
+import asyncio
+import httpx
 from datetime import date
 from supabase import Client
 
 logger = logging.getLogger(__name__)
 
+def retry_db_operation(max_retries: int = 2, delay: float = 1.0):
+    """
+    Decorator to retry database operations on transient connection errors (getaddrinfo, ConnectError).
+    """
+    def decorator(func):
+        async def wrapper(*args, **kwargs):
+            last_err = None
+            for attempt in range(max_retries + 1):
+                try:
+                    return await func(*args, **kwargs)
+                except (httpx.ConnectError, httpx.RequestError) as e:
+                    last_err = e
+                    err_msg = str(e).lower()
+                    if "getaddrinfo" in err_msg or "connection" in err_msg:
+                        if attempt < max_retries:
+                            logger.warning(f"⚠️  Prescription DB glitch (attempt {attempt+1}/{max_retries+1}). Retrying in {delay}s...")
+                            await asyncio.sleep(delay)
+                            continue
+                    raise
+                except Exception:
+                    raise
+            raise last_err
+        return wrapper
+    return decorator
 
+
+@retry_db_operation(max_retries=2, delay=1.0)
 async def create_prescription(
     supabase: Client,
     patient_name: str,
@@ -50,10 +78,13 @@ async def create_prescription(
         raise
 
 
+@retry_db_operation(max_retries=2, delay=1.0)
 async def get_prescriptions(
     supabase: Client, limit: int = 50, offset: int = 0
 ) -> tuple[list[dict], int]:
     """Fetch prescriptions ordered by date descending."""
+    # Combine count and select into one optimized request if possible, 
+    # but for now, we just wrap them in the retry logic.
     count_result = (
         supabase.table("prescriptions").select("id", count="exact").execute()
     )
@@ -69,6 +100,7 @@ async def get_prescriptions(
     return result.data or [], total
 
 
+@retry_db_operation(max_retries=2, delay=1.0)
 async def get_prescription_by_id(supabase: Client, prescription_id: str) -> dict | None:
     """Fetch a single prescription by ID."""
     result = (
@@ -81,6 +113,7 @@ async def get_prescription_by_id(supabase: Client, prescription_id: str) -> dict
     return result.data
 
 
+@retry_db_operation(max_retries=2, delay=1.0)
 async def update_prescription_status(
     supabase: Client, prescription_id: str, new_status: str
 ) -> dict | None:
@@ -119,6 +152,7 @@ async def upload_prescription_image(
     return signed.get("signedURL", "") if isinstance(signed, dict) else ""
 
 
+@retry_db_operation(max_retries=2, delay=1.0)
 async def delete_prescription(supabase: Client, prescription_id: str) -> bool:
     """Delete a prescription record."""
     result = supabase.table("prescriptions").delete().eq("id", prescription_id).execute()

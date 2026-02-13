@@ -67,7 +67,9 @@ export function StatsGrid({ stats, t }: StatsGridProps) {
                 {stat.label}
               </p>
             </div>
-            <p className="text-2xl font-bold text-navy">{stat.value}</p>
+            <p className="text-2xl font-bold text-navy dark:text-white">
+              {stat.value}
+            </p>
           </Card>
         </motion.div>
       ))}

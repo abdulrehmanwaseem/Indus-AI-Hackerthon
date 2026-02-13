@@ -56,6 +56,7 @@ const getInitials = (name: string): string => {
 export function PatientSummary() {
   const { id } = useParams();
   const [patient, setPatient] = useState<PatientResponse | null>(null);
+  const [language, setLanguage] = useState<"en" | "ur">("en");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -211,14 +212,24 @@ export function PatientSummary() {
                 <Button
                   variant="ghost"
                   size="xs"
-                  className="text-[10px] h-7 px-3 bg-white shadow-sm font-bold"
+                  className={`text-[10px] h-7 px-3 transition-all font-bold ${
+                    language === "en"
+                      ? "bg-white shadow-sm opacity-100"
+                      : "opacity-50 hover:opacity-80"
+                  }`}
+                  onClick={() => setLanguage("en")}
                 >
                   English
                 </Button>
                 <Button
                   variant="ghost"
                   size="xs"
-                  className="text-[10px] h-7 px-3 opacity-50 font-bold"
+                  className={`text-[10px] h-7 px-3 transition-all font-bold font-urdu ${
+                    language === "ur"
+                      ? "bg-white shadow-sm opacity-100"
+                      : "opacity-50 hover:opacity-80"
+                  }`}
+                  onClick={() => setLanguage("ur")}
                 >
                   اردو
                 </Button>
@@ -227,19 +238,31 @@ export function PatientSummary() {
 
             {/* Bilingual Summaries */}
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
-                <p className="text-sm leading-relaxed text-navy font-medium italic">
-                  "
-                  {patient.ai_summary?.clinical_summary_en ||
-                    "AI analysis is being processed..."}
-                  "
-                </p>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 hidden">
-                <p className="text-sm leading-relaxed text-navy text-right font-urdu">
-                  {patient.ai_summary?.clinical_summary_ur}
-                </p>
-              </div>
+              {language === "en" ? (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="p-4 rounded-xl bg-primary/5 border border-primary/10"
+                >
+                  <p className="text-sm leading-relaxed text-navy font-medium italic">
+                    "
+                    {patient.ai_summary?.clinical_summary_en ||
+                      "AI analysis is being processed..."}
+                    "
+                  </p>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="p-4 rounded-xl bg-slate-50 border border-slate-100"
+                >
+                  <p className="text-base leading-relaxed text-navy text-right font-urdu">
+                    {patient.ai_summary?.clinical_summary_ur ||
+                      "AI تجزیہ جاری ہے..."}
+                  </p>
+                </motion.div>
+              )}
             </div>
 
             <Separator className="my-6" />

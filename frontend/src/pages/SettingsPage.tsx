@@ -25,9 +25,9 @@ type SettingsTab = "profile" | "notifications" | "appearance" | "language";
 
 const tabs: { key: SettingsTab; labelKey: string; icon: React.ElementType }[] =
   [
-    { key: "profile", labelKey: "Profile", icon: IconUser },
-    { key: "notifications", labelKey: "Notifications", icon: IconBell },
-    { key: "appearance", labelKey: "Appearance", icon: IconPalette },
+    { key: "profile", labelKey: "profile", icon: IconUser },
+    { key: "notifications", labelKey: "notifications", icon: IconBell },
+    { key: "appearance", labelKey: "appearance", icon: IconPalette },
     { key: "language", labelKey: "language", icon: IconLanguage },
   ];
 
@@ -112,7 +112,7 @@ export function SettingsPage() {
       >
         <h1 className="text-2xl font-bold mb-1">{t("settings")}</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          {t("manage_preferences", "Manage your account and preferences")}
+          {t("manage_preferences")}
         </p>
       </motion.div>
 
@@ -146,7 +146,7 @@ export function SettingsPage() {
             >
               <Card className="p-6 border-border/60">
                 <h2 className="font-semibold text-lg mb-6">
-                  Profile Information
+                  {t("profile_info")}
                 </h2>
                 <div className="flex items-center gap-4 mb-6">
                   <Avatar className="w-16 h-16">
@@ -165,7 +165,7 @@ export function SettingsPage() {
                 <Separator className="mb-6" />
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="full-name">Full Name</Label>
+                    <Label htmlFor="full-name">{t("full_name")}</Label>
                     <Input
                       id="full-name"
                       value={formData.full_name}
@@ -178,7 +178,7 @@ export function SettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="settings-email">Email</Label>
+                    <Label htmlFor="settings-email">{t("email")}</Label>
                     <Input
                       id="settings-email"
                       type="email"
@@ -188,7 +188,9 @@ export function SettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="specialization">Specialization</Label>
+                    <Label htmlFor="specialization">
+                      {t("specialization")}
+                    </Label>
                     <Input
                       id="specialization"
                       value={formData.specialization}
@@ -202,7 +204,7 @@ export function SettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="clinic">{t("clinic", "Clinic")}</Label>
+                    <Label htmlFor="clinic">{t("clinic")}</Label>
                     <Input
                       id="clinic"
                       value={formData.clinic}
@@ -239,29 +241,29 @@ export function SettingsPage() {
             >
               <Card className="p-6 border-border/60">
                 <h2 className="font-semibold text-lg mb-6">
-                  Notification Preferences
+                  {t("notification_prefs")}
                 </h2>
                 <div className="space-y-5">
                   {[
                     {
                       key: "criticalAlerts" as const,
-                      label: "Critical Patient Alerts",
-                      desc: "Get notified when a critical patient enters the queue",
+                      label: t("critical_alerts"),
+                      desc: t("critical_alerts_desc"),
                     },
                     {
                       key: "newPatients" as const,
-                      label: "New Patient Arrivals",
-                      desc: "Receive alerts for new patient registrations",
+                      label: t("new_patient_alerts"),
+                      desc: t("new_patient_alerts_desc"),
                     },
                     {
                       key: "prescriptionUpdates" as const,
-                      label: "Prescription Updates",
-                      desc: "Notify when prescriptions are digitized or verified",
+                      label: t("prescription_updates_notif"),
+                      desc: t("prescription_updates_desc"),
                     },
                     {
                       key: "email" as const,
-                      label: "Email Notifications",
-                      desc: "Receive daily summary via email",
+                      label: t("email_notifications"),
+                      desc: t("email_notifications_desc"),
                     },
                   ].map((item) => (
                     <div
@@ -296,7 +298,9 @@ export function SettingsPage() {
               animate={{ opacity: 1, x: 0 }}
             >
               <Card className="p-6 border-border/60">
-                <h2 className="font-semibold text-lg mb-6">Appearance</h2>
+                <h2 className="font-semibold text-lg mb-6">
+                  {t("appearance")}
+                </h2>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {darkMode ? (
@@ -305,9 +309,9 @@ export function SettingsPage() {
                       <IconSun size={20} className="text-primary" />
                     )}
                     <div>
-                      <p className="text-sm font-medium">Dark Mode</p>
+                      <p className="text-sm font-medium">{t("dark_mode")}</p>
                       <p className="text-xs text-muted-foreground">
-                        Toggle between light and dark themes
+                        {t("dark_mode_desc")}
                       </p>
                     </div>
                   </div>

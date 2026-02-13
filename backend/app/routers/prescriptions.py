@@ -22,17 +22,27 @@ ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic", "i
 
 def _format_prescription(row: dict) -> PrescriptionResponse:
     """Convert a DB row dict to a PrescriptionResponse."""
+    medications = []
+    for med in row.get("medications", []):
+        if isinstance(med, dict):
+            medications.append({
+                "drug": med.get("drug") or med.get("name") or "Unknown",
+                "dosage": med.get("dosage") or "N/A",
+                "frequency": med.get("frequency") or "N/A",
+                "duration": med.get("duration") or "N/A",
+            })
+
     return PrescriptionResponse(
         id=str(row["id"]),
         patient_name=row["patient_name"],
         date=str(row["date"]),
-        medications=row.get("medications", []),
+        medications=medications,
         status=row["status"],
         extracted_patient_name=row.get("extracted_patient_name"),
         extracted_age=row.get("extracted_age"),
         extracted_gender=row.get("extracted_gender"),
         image_url=row.get("image_url"),
-        created_at=str(row.get("created_at", "")),
+        created_at=str(row.get("created_at")) if row.get("created_at") else None,
     )
 
 
