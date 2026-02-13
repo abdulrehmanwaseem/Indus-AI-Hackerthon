@@ -29,9 +29,9 @@ def get_supabase_admin(settings: Settings = Depends(get_settings)) -> Client:
 
 # ── Gemini model ──────────────────────────────────────
 def get_gemini_model(settings: Settings = Depends(get_settings)):
-    """Returns a configured Gemini 2.0 Flash model instance."""
+    """Returns a configured Gemini 2.5 Flash model instance."""
     genai.configure(api_key=settings.GEMINI_API_KEY)
-    return genai.GenerativeModel("gemini-2.0-flash")
+    return genai.GenerativeModel("gemini-2.5-flash")
 
 
 # ── Auth dependency ───────────────────────────────────
